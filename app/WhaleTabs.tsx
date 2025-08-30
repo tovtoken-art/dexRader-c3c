@@ -9,27 +9,33 @@ const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
 function short(x: string) {
   return x?.length > 12 ? `${x.slice(0, 6)}…${x.slice(-6)}` : x;
 }
+function sign0(n: number) {
+  const v = Number(n || 0);
+  const s = v >= 0 ? "+" : "";
+  return s + nf0.format(Math.abs(v));
+}
 function sign6(n: number) {
   const v = Number(n || 0);
   const s = v >= 0 ? "+" : "";
   return s + v.toFixed(6);
 }
+function tone(n: number) {
+  if (n > 0) return "text-emerald-400";
+  if (n < 0) return "text-red-400";
+  return "text-neutral-300";
+}
 function cls(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-type Whale = {
-  [k: string]: any; // "지갑","순위","순매수_C3C","순매수_SOL"
-};
+type Whale = { [k: string]: any };
 
 type LabelMap = Record<string, string>;
 
 export default function WhaleTabs({
-  whales,
-  lastPriceSOLperC3C
+  whales
 }: {
   whales: Whale[];
-  lastPriceSOLperC3C: number;
 }) {
   const [tab, setTab] = useState<"buy" | "sell">("buy");
   const [labels, setLabels] = useState<LabelMap>({});
@@ -89,9 +95,7 @@ export default function WhaleTabs({
   async function copy(wallet: string) {
     try {
       await navigator.clipboard.writeText(wallet);
-    } catch {
-      // 무시
-    }
+    } catch {}
   }
 
   return (
@@ -122,8 +126,7 @@ export default function WhaleTabs({
       </div>
 
       <p className="sub mb-3">
-        {tab === "buy" ? "C3C 기준 상위" : "SOL 기준 상위"} · 기준가{" "}
-        {nf6.format(lastPriceSOLperC3C)} SOL/C3C로 P&L 계산
+        {tab === "buy" ? "C3C 기준 상위" : "SOL 기준 상위"}
       </p>
 
       <div className="overflow-x-auto">
@@ -134,7 +137,6 @@ export default function WhaleTabs({
               <th className="th">지갑</th>
               <th className="th">순매수 C3C</th>
               <th className="th">순매수 SOL</th>
-              <th className="th">P&amp;L(SOL)</th>
             </tr>
           </thead>
           <tbody>
@@ -142,7 +144,6 @@ export default function WhaleTabs({
               const wallet = w["지갑"];
               const netC3C = Number(w["순매수_C3C"] || 0);
               const netSOL = Number(w["순매수_SOL"] || 0);
-              const pnlSOL = netSOL + netC3C * Number(lastPriceSOLperC3C || 0); // 핵심
 
               return (
                 <tr
@@ -159,9 +160,10 @@ export default function WhaleTabs({
                     <div className="flex items-center gap-2">
                       <span className="font-mono">{short(wallet)}</span>
 
-                      {/* 라벨 뱃지 */}
+                      {/* 더 눈에 띄는 라벨 뱃지 */}
                       {labels[wallet] && (
-                        <span className="px-2 py-0.5 text-xs rounded-lg bg-neutral-800 border border-neutral-700">
+                        <span className="px-2 py-0.5 text-xs rounded-lg border font-medium
+                          bg-sky-500/20 text-sky-300 border-sky-500/30">
                           {labels[wallet]}
                         </span>
                       )}
@@ -209,11 +211,9 @@ export default function WhaleTabs({
                     </div>
                   </td>
 
-                  <td className="td">{nf0.format(netC3C)}</td>
-                  <td className="td">{nf6.format(netSOL)}</td>
-                  <td className={cls("td", pnlSOL >= 0 ? "text-green-400" : "text-red-400")}>
-                    {sign6(pnlSOL)}
-                  </td>
+                  {/* 색상 적용: +초록 -빨강 0회색 */}
+                  <td className={cls("td", tone(netC3C))}>{sign0(netC3C)}</td>
+                  <td className={cls("td", tone(netSOL))}>{sign6(netSOL)}</td>
                 </tr>
               );
             })}
