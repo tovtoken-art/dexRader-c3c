@@ -15,20 +15,27 @@ export default async function Page() {
   // 최근 체결  원본 테이블에서 읽고 한글 키로 매핑
   const { data: tradesRaw } = await supabase
     .from("trade_events")
-    .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,tx_signature")
+    .select(
+      "ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature"
+    )
     .order("ts", { ascending: false })
-    .limit(15);
+    .limit(50);
 
   const trades =
-    (tradesRaw ?? []).map((r: any) => ({
-      시각: r.ts,
-      지갑: r.wallet,
-      매수_매도: r.side === "BUY" ? "매수" : "매도",
-      C3C_수량: r.c3c_amount,
-      SOL_수량: r.sol_amount,
-      가격_C3C_per_SOL: r.price_c3c_per_sol,
-      트랜잭션: r.tx_signature,
-    }));
+    (tradesRaw ?? []).map((r: any) => {
+      const pSolPerC3 =
+        Number(r.price_sol_per_c3c) ||
+        (Number(r.price_c3c_per_sol) ? 1 / Number(r.price_c3c_per_sol) : 0);
+      return {
+        시각: r.ts,
+        지갑: r.wallet,
+        매수_매도: r.side === "BUY" ? "매수" : "매도",
+        C3C_수량: r.c3c_amount,
+        SOL_수량: r.sol_amount,
+        가격_SOL_per_C3C: pSolPerC3, // ← 1 C3C 당 SOL
+        트랜잭션: r.tx_signature,
+      };
+    });
 
   return (
     <div className="space-y-8">
@@ -39,7 +46,7 @@ export default async function Page() {
       <section className="card">
         <div className="flex items-end justify-between mb-4">
           <h1 className="h1">최근 체결</h1>
-          <p className="sub">최신 15건</p>
+          <p className="sub">최신 50건</p>
         </div>
         <div className="overflow-x-auto">
           <table className="table">
@@ -50,7 +57,7 @@ export default async function Page() {
                 <th className="th">매수/매도</th>
                 <th className="th">C3C 수량</th>
                 <th className="th">SOL 수량</th>
-                <th className="th">가격 C3C/SOL</th>
+                <th className="th">가격 SOL/C3C</th> {/* ← 라벨 변경 */}
                 <th className="th">트랜잭션</th>
               </tr>
             </thead>
@@ -62,7 +69,9 @@ export default async function Page() {
                   <td className="td">{t["매수_매도"]}</td>
                   <td className="td">{nf0.format(Number(t["C3C_수량"] || 0))}</td>
                   <td className="td">{nf6.format(Number(t["SOL_수량"] || 0))}</td>
-                  <td className="td">{nf6.format(Number(t["가격_C3C_per_SOL"] || 0))}</td>
+                  <td className="td">
+                    {nf6.format(Number(t["가격_SOL_per_C3C"] || 0))}
+                  </td>
                   <td className="td">
                     <a
                       className="text-blue-400 hover:underline"

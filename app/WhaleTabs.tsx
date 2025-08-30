@@ -50,7 +50,7 @@ export default function WhaleTabs({ whales }: { whales: any[] }) {
               tab === "buy" ? "bg-white/10" : "bg-neutral-800"
             }`}
           >
-            순매수 랭킹
+            매수 랭킹
           </button>
           <button
             onClick={() => setTab("sell")}
@@ -58,7 +58,7 @@ export default function WhaleTabs({ whales }: { whales: any[] }) {
               tab === "sell" ? "bg-white/10" : "bg-neutral-800"
             }`}
           >
-            순매도 랭킹
+            매도 랭킹
           </button>
         </div>
       </div>
