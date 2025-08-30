@@ -10,11 +10,22 @@ export default async function Page() {
     .select("*")
     .limit(50);
 
-  const { data: trades } = await supabase
-    .from("trade_events_ko")
-    .select("*")
-    .order("시각", { ascending: false })
+  const { data: tradesRaw, error: tradesErr } = await supabase
+    .from("trade_events")
+    .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,tx_signature")
+    .order("ts", { ascending: false })
     .limit(50);
+
+  const trades =
+    (tradesRaw ?? []).map((r: any) => ({
+      시각: r.ts,
+      지갑: r.wallet,
+      매수_매도: r.side === "BUY" ? "매수" : "매도",
+      C3C_수량: r.c3c_amount,
+      SOL_수량: r.sol_amount,
+      가격_C3C_per_SOL: r.price_c3c_per_sol,
+      트랜잭션: r.tx_signature,
+    }));
 
   return (
     <div className="space-y-8">
