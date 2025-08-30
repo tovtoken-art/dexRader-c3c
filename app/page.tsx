@@ -7,7 +7,7 @@ export default async function Page() {
   const { data: whales } = await supabase
     .from("whale_ranking")
     .select("*")
-    .limit(100);
+    .limit(500);
 
   // 2) 최근 체결 15건 → 여기서 최신 가격도 뽑음
   const { data: tradesRaw } = await supabase
