@@ -12,18 +12,6 @@ export default async function Page() {
     .select("*")
     .limit(100);
 
-  // 최신 가격 1 C3C 당 SOL
-  const { data: lastRow } = await supabase
-    .from("trade_events")
-    .select("price_sol_per_c3c")
-    .not("price_sol_per_c3c", "is", null)
-    .order("ts", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const lastPriceSOLperC3C =
-    Number(lastRow?.price_sol_per_c3c || 0);
-
   // 최근 체결  원본 테이블에서 읽고 한글 키로 매핑
   const { data: tradesRaw } = await supabase
     .from("trade_events")
@@ -44,15 +32,15 @@ export default async function Page() {
         매수_매도: r.side === "BUY" ? "매수" : "매도",
         C3C_수량: r.c3c_amount,
         SOL_수량: r.sol_amount,
-        가격_SOL_per_C3C: pSolPerC3, // 1 C3C 당 SOL
+        가격_SOL_per_C3C: pSolPerC3, // ← 1 C3C 당 SOL
         트랜잭션: r.tx_signature,
       };
     });
 
   return (
     <div className="space-y-8">
-      {/* 탭 UI 적용된 고래 순위 + P&L */}
-      <WhaleTabs whales={whales ?? []} lastPriceSOLperC3C={lastPriceSOLperC3C} />
+      {/* 탭 UI 적용된 고래 순위 */}
+      <WhaleTabs whales={whales ?? []} />
 
       {/* 최근 체결 */}
       <section className="card">
@@ -69,7 +57,7 @@ export default async function Page() {
                 <th className="th">매수/매도</th>
                 <th className="th">C3C 수량</th>
                 <th className="th">SOL 수량</th>
-                <th className="th">가격 SOL/C3C</th>
+                <th className="th">가격 SOL/C3C</th> {/* ← 라벨 변경 */}
                 <th className="th">트랜잭션</th>
               </tr>
             </thead>
