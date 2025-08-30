@@ -19,7 +19,7 @@ export default async function Page() {
       "ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature"
     )
     .order("ts", { ascending: false })
-    .limit(50);
+    .limit(10);
 
   const trades =
     (tradesRaw ?? []).map((r: any) => {
@@ -46,7 +46,7 @@ export default async function Page() {
       <section className="card">
         <div className="flex items-end justify-between mb-4">
           <h1 className="h1">최근 체결</h1>
-          <p className="sub">최신 50건</p>
+          <p className="sub">최신 10건</p>
         </div>
         <div className="overflow-x-auto">
           <table className="table">
