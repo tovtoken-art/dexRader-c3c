@@ -12,7 +12,9 @@ export default function RealtimeKick() {
         () => window.location.reload()
       )
       .subscribe();
-    return () => { sbClient.removeChannel(ch); };
+    return () => {
+      sbClient.removeChannel(ch);
+    };
   }, []);
   return null;
 }

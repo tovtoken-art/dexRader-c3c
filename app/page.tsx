@@ -18,6 +18,7 @@ export default async function Page() {
 
   return (
     <div className="space-y-8">
+      {/* 고래 순위 */}
       <section className="card">
         <div className="flex items-end justify-between mb-4">
           <h1 className="h1">고래 순위</h1>
@@ -34,19 +35,24 @@ export default async function Page() {
               </tr>
             </thead>
             <tbody>
-              {whales?.map((w: any) => (
+              {(whales ?? []).map((w: any) => (
                 <tr key={`${w["지갑"]}`}>
                   <td className="td">{w["순위"]}</td>
                   <td className="td font-mono">{short(w["지갑"])}</td>
-                  <td className="td">{nf0.format(Number(w["순매수_C3C"] || 0))}</td>
-                  <td className="td">{Number(w["순매수_SOL"] || 0).toFixed(6)}</td>
+                  <td className="td">
+                    {nf0.format(Number(w["순매수_C3C"] || 0))}
+                  </td>
+                  <td className="td">
+                    {Number(w["순매수_SOL"] || 0).toFixed(6)}
+                  </td>
                 </tr>
-              )) ?? null}
+              ))}
             </tbody>
           </table>
         </div>
       </section>
 
+      {/* 최근 체결 */}
       <section className="card">
         <div className="flex items-end justify-between mb-4">
           <h1 className="h1">최근 체결</h1>
@@ -66,14 +72,20 @@ export default async function Page() {
               </tr>
             </thead>
             <tbody>
-              {trades?.map((t: any, i: number) => (
+              {(trades ?? []).map((t: any, i: number) => (
                 <tr key={`${t["트랜잭션"]}-${i}`}>
                   <td className="td">{fmtTime(t["시각"])}</td>
                   <td className="td font-mono">{short(t["지갑"])}</td>
                   <td className="td">{t["매수_매도"]}</td>
-                  <td className="td">{nf0.format(Number(t["C3C_수량"] || 0))}</td>
-                  <td className="td">{nf6.format(Number(t["SOL_수량"] || 0))}</td>
-                  <td className="td">{nf6.format(Number(t["가격_C3C_per_SOL"] || 0))}</td>
+                  <td className="td">
+                    {nf0.format(Number(t["C3C_수량"] || 0))}
+                  </td>
+                  <td className="td">
+                    {nf6.format(Number(t["SOL_수량"] || 0))}
+                  </td>
+                  <td className="td">
+                    {nf6.format(Number(t["가격_C3C_per_SOL"] || 0))}
+                  </td>
                   <td className="td">
                     <a
                       className="text-blue-400 hover:underline"
@@ -84,7 +96,7 @@ export default async function Page() {
                     </a>
                   </td>
                 </tr>
-              )) ?? null}
+              ))}
             </tbody>
           </table>
         </div>
@@ -102,5 +114,7 @@ function fmtTime(iso: string) {
   try {
     const d = new Date(iso);
     return d.toLocaleString("ko-KR", { hour12: false });
-  } catch { return iso; }
+  } catch {
+    return iso;
+  }
 }
