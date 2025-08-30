@@ -1,20 +1,23 @@
 import { supabase } from "../lib/supabase";
 import RealtimeKick from "./RealtimeKick";
+import WhaleTabs from "./WhaleTabs";
 
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
 
 export default async function Page() {
+  // 고래 데이터
   const { data: whales } = await supabase
     .from("whale_ranking")
     .select("*")
-    .limit(50);
+    .limit(100);
 
-  const { data: tradesRaw, error: tradesErr } = await supabase
+  // 최근 체결  원본 테이블에서 읽고 한글 키로 매핑
+  const { data: tradesRaw } = await supabase
     .from("trade_events")
     .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,tx_signature")
     .order("ts", { ascending: false })
-    .limit(50);
+    .limit(15);
 
   const trades =
     (tradesRaw ?? []).map((r: any) => ({
@@ -29,45 +32,14 @@ export default async function Page() {
 
   return (
     <div className="space-y-8">
-      {/* 고래 순위 */}
-      <section className="card">
-        <div className="flex items-end justify-between mb-4">
-          <h1 className="h1">고래 순위</h1>
-          <p className="sub">순매수_C3C 기준</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th className="th">순위</th>
-                <th className="th">지갑</th>
-                <th className="th">순매수 C3C</th>
-                <th className="th">순매수 SOL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(whales ?? []).map((w: any) => (
-                <tr key={`${w["지갑"]}`}>
-                  <td className="td">{w["순위"]}</td>
-                  <td className="td font-mono">{short(w["지갑"])}</td>
-                  <td className="td">
-                    {nf0.format(Number(w["순매수_C3C"] || 0))}
-                  </td>
-                  <td className="td">
-                    {Number(w["순매수_SOL"] || 0).toFixed(6)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* 탭 UI 적용된 고래 순위 */}
+      <WhaleTabs whales={whales ?? []} />
 
       {/* 최근 체결 */}
       <section className="card">
         <div className="flex items-end justify-between mb-4">
           <h1 className="h1">최근 체결</h1>
-          <p className="sub">최신 50건</p>
+          <p className="sub">최신 15건</p>
         </div>
         <div className="overflow-x-auto">
           <table className="table">
@@ -83,20 +55,14 @@ export default async function Page() {
               </tr>
             </thead>
             <tbody>
-              {(trades ?? []).map((t: any, i: number) => (
+              {trades.map((t: any, i: number) => (
                 <tr key={`${t["트랜잭션"]}-${i}`}>
                   <td className="td">{fmtTime(t["시각"])}</td>
                   <td className="td font-mono">{short(t["지갑"])}</td>
                   <td className="td">{t["매수_매도"]}</td>
-                  <td className="td">
-                    {nf0.format(Number(t["C3C_수량"] || 0))}
-                  </td>
-                  <td className="td">
-                    {nf6.format(Number(t["SOL_수량"] || 0))}
-                  </td>
-                  <td className="td">
-                    {nf6.format(Number(t["가격_C3C_per_SOL"] || 0))}
-                  </td>
+                  <td className="td">{nf0.format(Number(t["C3C_수량"] || 0))}</td>
+                  <td className="td">{nf6.format(Number(t["SOL_수량"] || 0))}</td>
+                  <td className="td">{nf6.format(Number(t["가격_C3C_per_SOL"] || 0))}</td>
                   <td className="td">
                     <a
                       className="text-blue-400 hover:underline"
