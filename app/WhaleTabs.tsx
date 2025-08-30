@@ -29,19 +29,20 @@ function cls(...xs: Array<string | false | null | undefined>) {
 }
 
 type Whale = { [k: string]: any };
-
 type LabelMap = Record<string, string>;
 
 export default function WhaleTabs({
-  whales
+  whales,
+  lastPriceSOLperC3C
 }: {
   whales: Whale[];
+  lastPriceSOLperC3C: number; // 1 C3C 당 SOL
 }) {
   const [tab, setTab] = useState<"buy" | "sell">("buy");
   const [labels, setLabels] = useState<LabelMap>({});
   const [hover, setHover] = useState<string | null>(null);
 
-  // 라벨 불러오기
+  // 라벨 불러오기(필요할 때만 1회)
   useEffect(() => {
     (async () => {
       const { data } = await sb.from("wallet_labels").select("wallet,label");
@@ -62,7 +63,6 @@ export default function WhaleTabs({
         .map((w, i) => ({ ...w, _rank: i + 1 })),
     [whales]
   );
-
   const bySOL = useMemo(
     () =>
       [...(whales ?? [])]
@@ -73,7 +73,6 @@ export default function WhaleTabs({
         .map((w, i) => ({ ...w, _rank: i + 1 })),
     [whales]
   );
-
   const rows = tab === "buy" ? byC3C : bySOL;
 
   // 라벨 저장
@@ -81,9 +80,7 @@ export default function WhaleTabs({
     const current = labels[wallet] || "";
     const label = window.prompt("지갑 라벨을 입력", current ?? "");
     if (label == null) return;
-    const { error } = await sb
-      .from("wallet_labels")
-      .upsert({ wallet, label });
+    const { error } = await sb.from("wallet_labels").upsert({ wallet, label });
     if (error) {
       alert("라벨 저장 실패");
       return;
@@ -91,18 +88,14 @@ export default function WhaleTabs({
     setLabels((m) => ({ ...m, [wallet]: label }));
   }
 
-  // 복사
   async function copy(wallet: string) {
-    try {
-      await navigator.clipboard.writeText(wallet);
-    } catch {}
+    try { await navigator.clipboard.writeText(wallet); } catch {}
   }
 
   return (
     <section className="card">
       <div className="flex items-end justify-between mb-4">
         <h1 className="h1">고래 순위</h1>
-
         <div className="flex gap-2">
           <button
             onClick={() => setTab("buy")}
@@ -126,7 +119,7 @@ export default function WhaleTabs({
       </div>
 
       <p className="sub mb-3">
-        {tab === "buy" ? "C3C 기준 상위" : "SOL 기준 상위"}
+        {tab === "buy" ? "C3C 기준 상위" : "SOL 기준 상위"} · 기준가 {nf6.format(lastPriceSOLperC3C)} SOL/C3C
       </p>
 
       <div className="overflow-x-auto">
@@ -137,6 +130,7 @@ export default function WhaleTabs({
               <th className="th">지갑</th>
               <th className="th">순매수 C3C</th>
               <th className="th">순매수 SOL</th>
+              <th className="th">P&L(SOL)</th>
             </tr>
           </thead>
           <tbody>
@@ -144,6 +138,7 @@ export default function WhaleTabs({
               const wallet = w["지갑"];
               const netC3C = Number(w["순매수_C3C"] || 0);
               const netSOL = Number(w["순매수_SOL"] || 0);
+              const pnlSOL = netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
 
               return (
                 <tr
@@ -169,38 +164,19 @@ export default function WhaleTabs({
                       )}
 
                       {/* 액션들 */}
-                      <button
-                        title="라벨 편집"
-                        onClick={() => setLabel(wallet)}
-                        className="p-1 rounded hover:bg-white/10"
-                      >
-                        {/* 연필 아이콘 */}
+                      <button title="라벨 편집" onClick={() => setLabel(wallet)} className="p-1 rounded hover:bg-white/10">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                           <path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           <path d="M16.5 3.5l4 4L8 20l-5 1 1-5L16.5 3.5z" stroke="currentColor" strokeWidth="2" fill="none"/>
                         </svg>
                       </button>
-
-                      <button
-                        title="지갑 복사"
-                        onClick={() => copy(wallet)}
-                        className="p-1 rounded hover:bg-white/10"
-                      >
-                        {/* 복사 아이콘 */}
+                      <button title="지갑 복사" onClick={() => copy(wallet)} className="p-1 rounded hover:bg-white/10">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                           <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
                           <rect x="2" y="2" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
                         </svg>
                       </button>
-
-                      <a
-                        title="Solscan에서 보기"
-                        href={`https://solscan.io/account/${wallet}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1 rounded hover:bg-white/10"
-                      >
-                        {/* 링크 아이콘 */}
+                      <a title="Solscan에서 보기" href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noreferrer" className="p-1 rounded hover:bg-white/10">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                           <path d="M14 3h7v7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                           <path d="M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -214,6 +190,9 @@ export default function WhaleTabs({
                   {/* 색상 적용: +초록 -빨강 0회색 */}
                   <td className={cls("td", tone(netC3C))}>{sign0(netC3C)}</td>
                   <td className={cls("td", tone(netSOL))}>{sign6(netSOL)}</td>
+                  <td className={cls("td", pnlSOL >= 0 ? "text-emerald-400" : "text-red-400")}>
+                    {sign6(pnlSOL)}
+                  </td>
                 </tr>
               );
             })}
