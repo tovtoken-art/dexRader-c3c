@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../lib/supabase";
 import RealtimeKick from "./RealtimeKick";
 
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });

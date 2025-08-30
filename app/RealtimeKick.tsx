@@ -1,5 +1,5 @@
 "use client";
-import { supabase as sbClient } from "@/lib/supabase";
+import { supabase as sbClient } from "../lib/supabase";
 import { useEffect } from "react";
 
 export default function RealtimeKick() {
