@@ -42,7 +42,7 @@ export default function WhaleTabs({
   const [labels, setLabels] = useState<LabelMap>({});
   const [hover, setHover] = useState<string | null>(null);
 
-  // 라벨 불러오기(필요할 때만 1회)
+  // 라벨 1회 로드
   useEffect(() => {
     (async () => {
       const { data } = await sb.from("wallet_labels").select("wallet,label");
@@ -155,10 +155,10 @@ export default function WhaleTabs({
                     <div className="flex items-center gap-2">
                       <span className="font-mono">{short(wallet)}</span>
 
-                      {/* 더 눈에 띄는 라벨 뱃지 */}
+                      {/* 라벨 뱃지 - 더 선명 */}
                       {labels[wallet] && (
-                        <span className="px-2 py-0.5 text-xs rounded-lg border font-medium
-                          bg-sky-500/20 text-sky-300 border-sky-500/30">
+                        <span className="px-2 py-0.5 text-xs rounded-lg border font-semibold
+                          bg-sky-500/25 text-sky-200 border-sky-400/40 shadow-sm">
                           {labels[wallet]}
                         </span>
                       )}
@@ -187,7 +187,7 @@ export default function WhaleTabs({
                     </div>
                   </td>
 
-                  {/* 색상 적용: +초록 -빨강 0회색 */}
+                  {/* 색상 적용 */}
                   <td className={cls("td", tone(netC3C))}>{sign0(netC3C)}</td>
                   <td className={cls("td", tone(netSOL))}>{sign6(netSOL)}</td>
                   <td className={cls("td", pnlSOL >= 0 ? "text-emerald-400" : "text-red-400")}>
