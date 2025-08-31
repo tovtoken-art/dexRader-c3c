@@ -1,13 +1,20 @@
+import LiveRefresh from "./LiveRefresh";
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+import { unstable_noStore as noStore } from 'next/cache';
+
 import { supabase } from "../lib/supabase";
 import WhaleTabs from "./WhaleTabs";
 import RecentTrades from "./RecentTrades";
 
 export default async function Page() {
+  noStore();
+<LiveRefresh />
   // 1) 고래 데이터
   const { data: whales } = await supabase
     .from("whale_ranking")
     .select("*")
-    .limit(500);
+    .limit(200);
 
   // 2) 최근 체결 15건 → 여기서 최신 가격도 뽑음
   const { data: tradesRaw } = await supabase
@@ -37,7 +44,14 @@ export default async function Page() {
     }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="h1">요약</h1>
+        <span className="badge badge-emerald">
+          최신가&nbsp;{lastPriceSOLperC3C ? lastPriceSOLperC3C.toFixed(6) : "—"}&nbsp;SOL/C3C
+        </span>
+      </div>
+
       <WhaleTabs whales={whales ?? []} lastPriceSOLperC3C={lastPriceSOLperC3C} />
       <RecentTrades initial={initialTrades} />
     </div>

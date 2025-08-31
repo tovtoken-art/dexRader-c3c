@@ -19,9 +19,7 @@ type Row = {
 export default function RecentTrades({ initial }: { initial: Row[] }) {
   const [rows, setRows] = useState<Row[]>(initial || []);
 
-  useEffect(() => {
-    setRows(initial || []);
-  }, [initial]);
+  useEffect(() => { setRows(initial || []); }, [initial]);
 
   useEffect(() => {
     const ch = sb
@@ -30,12 +28,9 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "trade_events" },
         async () => {
-          // 새 데이터 들어오면 최신 15건만 다시 로드
           const { data } = await sb
             .from("trade_events")
-            .select(
-              "ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature"
-            )
+            .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature")
             .order("ts", { ascending: false })
             .limit(15);
 
@@ -56,29 +51,27 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
       )
       .subscribe();
 
-    return () => {
-      sb.removeChannel(ch);
-    };
+    return () => { sb.removeChannel(ch); };
   }, []);
 
   function short(x: string) {
     return x?.length > 12 ? `${x.slice(0, 6)}…${x.slice(-6)}` : x;
   }
   function fmtTime(iso: string) {
-    try {
-      const d = new Date(iso);
-      return d.toLocaleString("ko-KR", { hour12: false });
-    } catch {
-      return iso;
-    }
+    try { return new Date(iso).toLocaleString("ko-KR", { hour12: false }); }
+    catch { return iso; }
   }
 
   return (
     <section className="card">
       <div className="flex items-end justify-between mb-4">
-        <h1 className="h1">최근 체결</h1>
-        <p className="sub">최신 15건</p>
+        <div>
+          <h2 className="h1">최근 체결</h2>
+          <p className="sub">최신 15건</p>
+        </div>
+        <span className="badge badge-emerald">LIVE</span>
       </div>
+
       <div className="overflow-x-auto">
         <table className="table">
           <thead>
@@ -97,18 +90,17 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
               <tr key={`${t.트랜잭션}-${i}`}>
                 <td className="td">{fmtTime(t.시각)}</td>
                 <td className="td font-mono">{short(t.지갑)}</td>
-                <td className={`td ${t.매수_매도 === "매수" ? "text-emerald-400" : "text-red-400"}`}>
-                  {t.매수_매도}
+
+                {/* 매수=초록 매도=빨강 */}
+                <td className="td">
+                  <span className={t.매수_매도 === "매수" ? "chip-buy" : "chip-sell"}>{t.매수_매도}</span>
                 </td>
+
                 <td className="td">{nf0.format(Number(t.C3C_수량 || 0))}</td>
                 <td className="td">{nf6.format(Number(t.SOL_수량 || 0))}</td>
                 <td className="td">{nf6.format(Number(t.가격_SOL_per_C3C || 0))}</td>
                 <td className="td">
-                  <a
-                    className="text-blue-400 hover:underline"
-                    href={`https://solscan.io/tx/${t.트랜잭션}`}
-                    target="_blank"
-                  >
+                  <a className="btn-ghost" href={`https://solscan.io/tx/${t.트랜잭션}`} target="_blank" rel="noreferrer">
                     열기
                   </a>
                 </td>
