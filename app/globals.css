@@ -3,45 +3,85 @@
 @tailwind utilities;
 
 :root{
-  --bg:#0b0f14; --card:#121823; --muted:#94a3b8; --line:#222b3a;
+  --bg:#0b0f14; --card:#121823; --muted:#94a3b8;
 }
 html,body{background:var(--bg); color:white}
 a{color:#60a5fa}
 
-/* layout */
 .container{ @apply max-w-6xl mx-auto px-4 md:px-6; }
 .header{ @apply sticky top-0 z-40 border-b border-neutral-800/80 backdrop-blur bg-black/40; }
-.brand{ @apply text-lg font-semibold tracking-wide; }
+.brand{ @apply text-base md:text-lg font-semibold tracking-wide; }
 
-/* cards */
-.card{ @apply rounded-2xl bg-[color:var(--card)] border border-neutral-800/50 p-5 shadow-xl shadow-black/20; }
-.h1{ @apply text-xl font-semibold; }
-.sub{ color:var(--muted); @apply text-sm; }
+/* 공통 카드 */
+.card{ @apply rounded-2xl bg-[color:var(--card)] border p-0 shadow-xl shadow-black/20 overflow-hidden; }
+.section-head{ @apply flex items-center gap-3 px-4 md:px-5 py-3 border-b; }
+.section-body{ @apply p-4 md:p-5; }
+.head-icon{ @apply inline-flex items-center justify-center w-7 h-7 rounded-lg; }
 
-/* table */
+/* 랭킹 전용 톤 */
+.head-rank{ @apply bg-gradient-to-r from-violet-700/40 to-fuchsia-700/30 border-violet-600/30; }
+.icon-rank{ @apply bg-violet-500/20 text-violet-200 border border-violet-600/40; }
+.card-rank{ @apply ring-1 ring-violet-700/30; }
+
+/* 체결 전용 톤 */
+.head-trades{ @apply bg-gradient-to-r from-emerald-700/40 to-teal-700/30 border-emerald-600/30; }
+.icon-trades{ @apply bg-emerald-500/20 text-emerald-200 border border-emerald-600/40; }
+.card-trades{ @apply ring-1 ring-emerald-700/30; }
+
+.h1{ @apply text-lg md:text-xl font-semibold; }
+.sub{ color:var(--muted); @apply text-xs md:text-sm; }
+.kicker{ @apply text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-md border; }
+.kicker-violet{ @apply bg-violet-500/10 text-violet-200 border-violet-500/30; }
+.kicker-emerald{ @apply bg-emerald-500/10 text-emerald-200 border-emerald-500/30; }
+
 .table{ @apply w-full text-sm; border-collapse: separate; border-spacing:0 8px; }
-.th{ @apply text-left text-xs uppercase tracking-wide text-neutral-400 pb-2; }
-.td{ @apply bg-black/10 border border-neutral-800/60 px-3 py-2 rounded-lg align-middle; }
+.th{ @apply text-left text-[10px] md:text-xs uppercase tracking-wide text-neutral-400 pb-2; }
+.td{ @apply bg-black/10 border border-neutral-800/60 px-3 py-2 rounded-lg align-middle text-sm; }
 tr > .td:first-child{ @apply rounded-l-lg; }
 tr > .td:last-child{ @apply rounded-r-lg; }
 
-/* buttons */
+.thead-sticky{ @apply sticky top-0 z-10; background: linear-gradient(to bottom, rgba(0,0,0,.6), rgba(0,0,0,0)); }
+
 .btn{ @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 hover:bg-neutral-800 transition; }
 .btn-ghost{ @apply inline-flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/10 transition; }
+.input{ @apply bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-sm w-full md:w-auto outline-none focus:ring-2 focus:ring-sky-600/40; }
+.switch{ @apply inline-flex items-center gap-2 text-sm text-neutral-300; }
 
-/* badges */
 .badge{ @apply inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium border; }
-.badge-sky{ @apply bg-sky-500/20 text-sky-200 border-sky-400/40; }
-.badge-rose{ @apply bg-rose-500/20 text-rose-200 border-rose-400/40; }
-.badge-amber{ @apply bg-amber-500/20 text-amber-200 border-amber-400/40; }
-.badge-violet{ @apply bg-violet-500/20 text-violet-200 border-violet-400/40; }
 .badge-emerald{ @apply bg-emerald-500/20 text-emerald-200 border-emerald-400/40; }
-.badge-slate{ @apply bg-slate-500/20 text-slate-200 border-slate-400/40; }
 
-/* chips */
 .chip-buy{ @apply inline-flex px-2 py-0.5 rounded-md text-emerald-300 bg-emerald-500/15 border border-emerald-600/30; }
 .chip-sell{ @apply inline-flex px-2 py-0.5 rounded-md text-rose-300 bg-rose-500/15 border border-rose-600/30; }
 
-/* inputs */
-.input{ @apply bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-600/40; }
-.switch{ @apply inline-flex items-center gap-2 text-sm text-neutral-300; }
+/* 섹션 구분선 */
+.section-sep{ @apply my-6 h-0.5 rounded-full bg-gradient-to-r from-violet-700/50 via-neutral-700/50 to-emerald-700/50; }
+
+/* 모바일 */
+.mobile-only{ @apply block md:hidden; }
+.desktop-only{ @apply hidden md:block; }
+.mcard{ @apply border rounded-2xl p-3; }
+.mcard-rank{ @apply bg-violet-900/10 border-violet-700/30; }
+.mcard-trade{ @apply bg-emerald-900/10 border-emerald-700/30; }
+.mrow{ @apply flex justify-between items-center text-sm py-1.5; }
+.mkey{ @apply text-neutral-400 text-xs; }
+.mval{ @apply text-neutral-100 text-sm; }
+.touch{ @apply min-h-[40px] min-w-[40px]; }
+
+/* 랭킹 바 시각화 */
+.rankwrap{ @apply mt-1 bg-violet-500/20 rounded-full h-2 overflow-hidden; }
+.rankbar{ @apply bg-violet-400/80 h-2 rounded-full; }
+
+/* 최근 체결 좌측 강조 */
+.left-buy{ @apply border-l-4 border-emerald-500/70; }
+.left-sell{ @apply border-l-4 border-rose-500/70; }
+
+/* 상단 마스트헤드: 테두리 없음 */
+.masthead{ @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4; }
+.mast-left{ @apply flex items-center gap-2; }
+.mast-icon{ @apply inline-flex items-center justify-center w-8 h-8 rounded-xl bg-violet-500/20 text-violet-200; }
+
+.tabs { @apply flex gap-2 bg-neutral-900/60 border border-neutral-700 rounded-xl p-1; }
+.tab { @apply flex-1 md:flex-none px-4 py-2 rounded-lg touch text-sm font-medium text-neutral-200 text-center; }
+.tab-rank-active { @apply bg-violet-600/30 ring-1 ring-violet-500/40; }
+.tab-trade-active { @apply bg-emerald-600/30 ring-1 ring-emerald-500/40; }
+
