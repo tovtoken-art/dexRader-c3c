@@ -1,6 +1,8 @@
 "use client";
 
 import { TradeRow } from "./TabsContainer";
+import WalletCell from "../components/WalletCell"; // 상단에 추가
+
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
 

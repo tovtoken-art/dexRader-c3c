@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase as sb } from "../lib/supabase";
+import WalletCell from "./components/WalletCell";
 
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
@@ -9,9 +10,6 @@ const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
 type Whale = { [k: string]: any };
 type LabelMap = Record<string, string>;
 
-function short(x: string) {
-  return x?.length > 12 ? `${x.slice(0, 6)}…${x.slice(-6)}` : x;
-}
 function sign0(n: number) {
   const v = Number(n || 0);
   const s = v >= 0 ? "+" : "";
@@ -78,11 +76,10 @@ export default function WhaleTabs({
   const rows = rowsBase.filter((w: any) => {
     const wallet = String(w["지갑"] || "");
     const okSearch = !q || wallet.toLowerCase().includes(q.toLowerCase()) || (labels[wallet] || "").includes(q);
-    const okWatch = !watchOnly || watch.includes(wallet);
+    const okWatch  = !watchOnly || watch.includes(wallet);
     return okSearch && okWatch;
   });
 
-  // 막대 시각화를 위한 최대값
   const maxMetric = useMemo(() => {
     const nums = rows.map(w => Math.abs(Number(tab === "buy" ? w["순매수_C3C"] : w["순매수_SOL"]) || 0));
     return Math.max(1, ...nums);
@@ -124,8 +121,8 @@ export default function WhaleTabs({
       <div className="section-body">
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mb-4">
           <div className="flex gap-2 bg-neutral-900/60 border border-neutral-700 rounded-xl p-1">
-            <button onClick={() => setTab("buy")} className={cls("px-3 py-1 rounded-lg touch", tab==="buy"?"bg-violet-500/20":"hover:bg-white/5")}>순매수 랭킹</button>
-            <button onClick={() => setTab("sell")} className={cls("px-3 py-1 rounded-lg touch", tab==="sell"?"bg-violet-500/20":"hover:bg-white/5")}>순매도 랭킹</button>
+            <button onClick={() => setTab("buy")}  className={cls("px-3 py-1 rounded-lg touch", tab==="buy"  ? "bg-violet-500/20" : "hover:bg-white/5")}>순매수 랭킹</button>
+            <button onClick={() => setTab("sell")} className={cls("px-3 py-1 rounded-lg touch", tab==="sell" ? "bg-violet-500/20" : "hover:bg-white/5")}>순매도 랭킹</button>
           </div>
           <div className="flex gap-2">
             <input className="input" placeholder="지갑 또는 라벨 검색" value={q} onChange={(e)=>setQ(e.target.value)} />
@@ -155,7 +152,15 @@ export default function WhaleTabs({
                 const netSOL = Number(w["순매수_SOL"] || 0);
                 const metric = Math.abs(Number(tab === "buy" ? netC3C : netSOL));
                 const widthPct = Math.max(2, Math.min(100, Math.round(100 * metric / maxMetric)));
-                const pnlSOL = netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
+
+                // PnL 계산 우선순위: realized/pos/원가 있으면 그 공식, 아니면 net 기반 대안
+                const posC3C  = Number(w["pos_c3c"] || 0);
+                const posCost = Number(w["pos_cost_sol"] || 0);
+                const realized= Number(w["realized_pnl_sol"] || 0);
+                const pnlSOL =
+                  (Number.isFinite(posC3C) && Number.isFinite(posCost) && Number.isFinite(realized))
+                    ? realized + (Number(lastPriceSOLperC3C || 0) * posC3C - posCost)
+                    : netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
 
                 return (
                   <tr
@@ -173,7 +178,10 @@ export default function WhaleTabs({
                             : (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.25l-7.19-.62L12 2 9.19 8.63 2 9.25l5.46 4.72L5.82 21z" stroke="currentColor" strokeWidth="2" fill="none"/></svg>)
                           }
                         </button>
-                        <span className="font-mono">{short(wallet)}</span>
+
+                        {/* 지갑 셀: 복사 + Solscan 포함 */}
+                        <WalletCell addr={wallet} />
+
                         {labels[wallet] && <span className="badge badge-emerald">{labels[wallet]}</span>}
                         <button title="라벨 편집" onClick={() => setLabel(wallet)} className="btn-ghost touch">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -181,13 +189,9 @@ export default function WhaleTabs({
                             <path d="M16.5 3.5l4 4L8 20l-5 1 1-5L16.5 3.5z" stroke="currentColor" strokeWidth="2" fill="none"/>
                           </svg>
                         </button>
-                        <a title="Solscan" href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noreferrer" className="btn-ghost touch">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M14 3h7v7M10 14L21 3M21 14v7h-7M14 21L3 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </a>
                       </div>
                     </td>
+
                     {/* 핵심 지표 + 막대 */}
                     <td className={cls("td", tone(tab==="buy"?netC3C:netSOL))}>
                       <div className="flex items-center justify-between gap-3">
@@ -196,10 +200,13 @@ export default function WhaleTabs({
                       </div>
                       <div className="rankwrap"><div className="rankbar" style={{ width: `${widthPct}%` }} /></div>
                     </td>
+
                     {/* 보조 지표 */}
                     <td className={cls("td", tone(tab==="buy"?netSOL:netC3C))}>
                       {tab==="buy" ? sign6(netSOL) : sign0(netC3C)}
                     </td>
+
+                    {/* PnL */}
                     <td className={cls("td", pnlSOL >= 0 ? "text-emerald-400" : "text-rose-400")}>
                       {sign6(pnlSOL)}
                     </td>
@@ -218,12 +225,19 @@ export default function WhaleTabs({
             const netSOL = Number(w["순매수_SOL"] || 0);
             const metric = Math.abs(Number(tab === "buy" ? netC3C : netSOL));
             const widthPct = Math.max(2, Math.min(100, Math.round(100 * metric / maxMetric)));
-            const pnlSOL = netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
+
+            const posC3C  = Number(w["pos_c3c"] || 0);
+            const posCost = Number(w["pos_cost_sol"] || 0);
+            const realized= Number(w["realized_pnl_sol"] || 0);
+            const pnlSOL =
+              (Number.isFinite(posC3C) && Number.isFinite(posCost) && Number.isFinite(realized))
+                ? realized + (Number(lastPriceSOLperC3C || 0) * posC3C - posCost)
+                : netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
 
             return (
               <div key={wallet} className="mcard mcard-rank">
-                <div className="mrow">
-                  <div className="font-mono">{short(wallet)}</div>
+                <div className="mrow items-center justify-between">
+                  <WalletCell addr={wallet} small />
                   {labels[wallet] && <span className="badge badge-emerald">{labels[wallet]}</span>}
                 </div>
                 <div className="mrow"><span className="mkey">순위</span><span className="mval">{w._rank}</span></div>

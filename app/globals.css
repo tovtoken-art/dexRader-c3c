@@ -85,3 +85,10 @@ tr > .td:last-child{ @apply rounded-r-lg; }
 .tab-rank-active { @apply bg-violet-600/30 ring-1 ring-violet-500/40; }
 .tab-trade-active { @apply bg-emerald-600/30 ring-1 ring-emerald-500/40; }
 
+/* 아이콘 버튼 공통 */
+.iconbtn{
+  @apply inline-flex items-center justify-center rounded-md
+         bg-neutral-800/70 hover:bg-neutral-700/70
+         border border-neutral-700 text-neutral-200;
+}
+.iconbtn:focus{ @apply outline-none ring-2 ring-violet-500/40; }

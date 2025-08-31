@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase as sb } from "../lib/supabase";
+import WalletCell from "./components/WalletCell";
 
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
@@ -54,9 +55,6 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
     return () => { sb.removeChannel(ch); };
   }, []);
 
-  function short(x: string) {
-    return x?.length > 12 ? `${x.slice(0, 6)}…${x.slice(-6)}` : x;
-  }
   function fmtTime(iso: string) {
     try { return new Date(iso).toLocaleString("ko-KR", { hour12: false }); }
     catch { return iso; }
@@ -98,7 +96,7 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
               {rows.map((t, i) => (
                 <tr key={`${t.트랜잭션}-${i}`} className={t.매수_매도 === "매수" ? "left-buy" : "left-sell"}>
                   <td className="td">{fmtTime(t.시각)}</td>
-                  <td className="td font-mono">{short(t.지갑)}</td>
+                  <td className="td"><WalletCell addr={t.지갑} small /></td>
                   <td className="td">
                     <span className={t.매수_매도 === "매수" ? "chip-buy" : "chip-sell"}>{t.매수_매도}</span>
                   </td>
@@ -126,7 +124,7 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
               </div>
               <div className="mrow">
                 <div className="mkey">지갑</div>
-                <div className="mval font-mono">{short(t.지갑)}</div>
+                <div className="mval"><WalletCell addr={t.지갑} small /></div>
               </div>
               <div className="mrow">
                 <div className="mkey">유형</div>
