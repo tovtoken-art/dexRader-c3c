@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "../lib/supabase";
-import TabsContainer, { TradeRow } from "./TabsContainer";
+import TabsContainer from "./TabsContainer";
+import { TradeRow } from "../lib/types";
 
 const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
 
@@ -54,4 +55,3 @@ export default async function Page() {
     </div>
   );
 }
-

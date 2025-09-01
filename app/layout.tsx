@@ -1,7 +1,8 @@
-export const metadata = { title: "C3C Dashboard", description: "C3C whales and trades" };
-
+import SolBalanceWidget from "./components/SolBalanceWidget";
 import "./globals.css";
+import LiveRefresh from "./LiveRefresh";
 
+export const metadata = { title: "C3C Dashboard", description: "C3C whales and trades" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
@@ -13,6 +14,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
         <main className="container py-6 space-y-6">{children}</main>
+        <LiveRefresh />
+        <SolBalanceWidget />
       </body>
     </html>
   );
