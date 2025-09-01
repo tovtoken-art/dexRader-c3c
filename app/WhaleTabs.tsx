@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase as sb } from "./lib/supabase";
+import { supabase as sb } from "../lib/supabase";
 import WalletCell from "./components/WalletCell";
 
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
