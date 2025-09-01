@@ -1,10 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { supabase as sb } from "../lib/supabase";
 import WhaleTabs from "./WhaleTabs";
 import RecentTradesView from "./RecentTradesView";
-import { TradeRow } from "../lib/types";
-import { useTradesFeed } from "../lib/hooks/useTradesFeed";
+
+export type TradeRow = {
+  ts: string; // ISO string
+  wallet: string;
+  side: "BUY" | "SELL";
+  c3c_amount: number;
+  sol_amount: number;
+  price_sol_per_c3c: number;
+  tx_signature: string;
+  _loading?: boolean;
+  _createdAt?: number;
+};
 
 export default function TabsContainer({
   whalesInit,
@@ -16,8 +27,52 @@ export default function TabsContainer({
   lastPriceInitSOLperC3C: number;
 }) {
   const [tab, setTab] = useState<"rank" | "trades">("rank");
-  const [whales] = useState<any[]>(whalesInit || []);
-  const { rows: trades, lastPrice } = useTradesFeed({ initialRows: tradesInit, initialLastPrice: lastPriceInitSOLperC3C, limit: 15 });
+  const [whales, setWhales] = useState<any[]>(whalesInit || []);
+  const [trades, setTrades] = useState<TradeRow[]>(tradesInit || []);
+  const [lastPrice, setLastPrice] = useState<number>(lastPriceInitSOLperC3C || 0);
+  const lastFetchRef = useRef<number>(0);
+  const refreshTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    function mapRow(r: any): TradeRow {
+      const priceSolPerC3C = Number(r?.price_sol_per_c3c) || (Number(r?.price_c3c_per_sol) ? 1 / Number(r?.price_c3c_per_sol) : 0);
+      return {
+        ts: r?.ts || "",
+        wallet: r?.wallet || "",
+        side: (r?.side === "BUY" ? "BUY" : "SELL") as "BUY" | "SELL",
+        c3c_amount: Number(r?.c3c_amount ?? 0),
+        sol_amount: Number(r?.sol_amount ?? 0),
+        price_sol_per_c3c: Number(priceSolPerC3C || 0),
+        tx_signature: r?.tx_signature || "",
+      };
+    }
+
+    async function fetchLatestTrades() {
+      try {
+        const { data } = await sb
+          .from("trade_events")
+          .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature")
+          .order("ts", { ascending: false })
+          .limit(15);
+        const rows = (data ?? []).map(mapRow);
+        setTrades(rows);
+        const p = rows[0]?.price_sol_per_c3c;
+        if (p > 0) setLastPrice(p);
+      } catch {}
+    }
+
+    function schedule() {
+      if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = window.setTimeout(fetchLatestTrades, 250);
+    }
+
+    const ch = sb
+      .channel("te_insert_tabs")
+      .on("postgres_changes", { event: "*", schema: "public", table: "trade_events" }, schedule)
+      .subscribe();
+
+    return () => { sb.removeChannel(ch); if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current); };
+  }, []);
 
   return (
     <>

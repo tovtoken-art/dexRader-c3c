@@ -1,7 +1,18 @@
 "use client";
 
-import { TradeRow } from "../lib/types";
-import { nf3, nf6, shortAddress, fmtTime } from "../lib/utils/format";
+import { TradeRow } from "./TabsContainer";
+
+const nf3 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
+const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
+
+function short(x: string) {
+  return x?.length > 12 ? `${x.slice(0, 6)}…${x.slice(-6)}` : x || "";
+}
+function fmtTime(iso: string, loading?: boolean) {
+  if (!iso || loading) return "…";
+  try { return new Date(iso).toLocaleString("ko-KR", { hour12: false }); }
+  catch { return iso || ""; }
+}
 
 export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
   return (
@@ -29,7 +40,7 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
                 <th className="th">유형</th>
                 <th className="th">C3C 수량</th>
                 <th className="th">SOL 수량</th>
-                <th className="th">가격(SOL/C3C)</th>
+                <th className="th">가격 SOL/C3C</th>
                 <th className="th">트랜잭션</th>
               </tr>
             </thead>
@@ -37,18 +48,18 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
               {rows.map((t, i) => (
                 <tr key={`${t.tx_signature || i}-${i}`} className={t.side === "BUY" ? "left-buy" : "left-sell"}>
                   <td className="td">{fmtTime(t.ts, t._loading)}</td>
-                  <td className="td font-mono">{t._loading ? "-" : shortAddress(t.wallet)}</td>
+                  <td className="td font-mono">{t._loading ? "…" : short(t.wallet)}</td>
                   <td className="td">
                     <span className={t.side === "BUY" ? "chip-buy" : "chip-sell"}>{t.side === "BUY" ? "매수" : "매도"}</span>
                   </td>
-                  <td className="td">{t._loading ? "-" : nf3.format(Number(t.c3c_amount || 0))}</td>
-                  <td className="td">{t._loading ? "-" : nf6.format(Number(t.sol_amount || 0))}</td>
-                  <td className="td">{t._loading ? "-" : nf6.format(Number(t.price_sol_per_c3c || 0))}</td>
+                  <td className="td">{t._loading ? "…" : nf3.format(Number(t.c3c_amount || 0))}</td>
+                  <td className="td">{t._loading ? "…" : nf6.format(Number(t.sol_amount || 0))}</td>
+                  <td className="td">{t._loading ? "…" : nf6.format(Number(t.price_sol_per_c3c || 0))}</td>
                   <td className="td">
                     {t.tx_signature ? (
-                      <a className="btn-ghost" href={`https://solscan.io/tx/${t.tx_signature}`} target="_blank" rel="noreferrer">보기</a>
+                      <a className="btn-ghost" href={`https://solscan.io/tx/${t.tx_signature}`} target="_blank" rel="noreferrer">열기</a>
                     ) : (
-                      <span className="text-neutral-500">-</span>
+                      <span className="text-neutral-500">…</span>
                     )}
                   </td>
                 </tr>
@@ -64,15 +75,15 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
                 <span>{fmtTime(t.ts, t._loading)}</span>
                 <span className={t.side === "BUY" ? "chip-buy" : "chip-sell"}>{t.side === "BUY" ? "매수" : "매도"}</span>
               </div>
-              <div className="mt-1 font-mono">{t._loading ? "-" : shortAddress(t.wallet)}</div>
-              <div className="mrow"><div className="mkey">C3C</div><div className="mval">{t._loading ? "-" : nf3.format(Number(t.c3c_amount || 0))}</div></div>
-              <div className="mrow"><div className="mkey">SOL</div><div className="mval">{t._loading ? "-" : nf6.format(Number(t.sol_amount || 0))}</div></div>
-              <div className="mrow"><div className="mkey">가격</div><div className="mval">{t._loading ? "-" : `${nf6.format(Number(t.price_sol_per_c3c || 0))} SOL/C3C`}</div></div>
+              <div className="mt-1 font-mono">{t._loading ? "…" : short(t.wallet)}</div>
+              <div className="mrow"><div className="mkey">C3C</div><div className="mval">{t._loading ? "…" : nf3.format(Number(t.c3c_amount || 0))}</div></div>
+              <div className="mrow"><div className="mkey">SOL</div><div className="mval">{t._loading ? "…" : nf6.format(Number(t.sol_amount || 0))}</div></div>
+              <div className="mrow"><div className="mkey">가격</div><div className="mval">{t._loading ? "…" : `${nf6.format(Number(t.price_sol_per_c3c || 0))} SOL/C3C`}</div></div>
               <div className="mt-2">
                 {t.tx_signature ? (
-                  <a className="btn touch w-full justify-center" href={`https://solscan.io/tx/${t.tx_signature}`} target="_blank" rel="noreferrer">Solscan 보기</a>
+                  <a className="btn touch w-full justify-center" href={`https://solscan.io/tx/${t.tx_signature}`} target="_blank" rel="noreferrer">Solscan 열기</a>
                 ) : (
-                  <span className="btn touch w-full justify-center text-neutral-500">-</span>
+                  <span className="btn touch w-full justify-center text-neutral-500">대기…</span>
                 )}
               </div>
             </div>
