@@ -154,9 +154,10 @@ export default function WhaleTabs({
                 const netSOL = Number(w["순매수_SOL"] || 0);
 
                 // ✅ 예전 방식으로 고정: PnL(SOL) = netSOL + netC3C * lastPrice
-                const realizedSOL = netSOL;
-                const unrealizedSOL = netC3C * Number(lastPriceSOLperC3C || 0);
-                const totalSOL = realizedSOL + unrealizedSOL;
+                // Spot DEX 가정: 순매수 C3C가 음수인 경우(전송으로 받은 뒤 매도 등) 보유분은 0으로 처리
+                const posC3C = Math.max(0, netC3C);
+                const unrealizedSOL = posC3C * Number(lastPriceSOLperC3C || 0);
+                const totalSOL = netSOL + unrealizedSOL;
 
                 const metric = Math.abs(Number(tab === "buy" ? netC3C : netSOL));
                 const widthPct = Math.max(2, Math.min(100, Math.round(100 * metric / maxMetric)));
@@ -200,9 +201,9 @@ export default function WhaleTabs({
             const wallet = String(w["지갑"]);
             const netC3C = Number(w["순매수_C3C"] || 0);
             const netSOL = Number(w["순매수_SOL"] || 0);
-            const realizedSOL = netSOL;
-            const unrealizedSOL = netC3C * Number(lastPriceSOLperC3C || 0);
-            const totalSOL = realizedSOL + unrealizedSOL;
+            const posC3C = Math.max(0, netC3C);
+            const unrealizedSOL = posC3C * Number(lastPriceSOLperC3C || 0);
+            const totalSOL = netSOL + unrealizedSOL;
             const metric = Math.abs(Number(tab === "buy" ? netC3C : netSOL));
             const widthPct = Math.max(2, Math.min(100, Math.round(100 * metric / maxMetric)));
 
