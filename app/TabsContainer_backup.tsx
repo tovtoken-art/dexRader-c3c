@@ -31,11 +31,13 @@ export default function TabsContainer({
   const [trades, setTrades] = useState<TradeRow[]>(tradesInit || []);
   const [lastPrice, setLastPrice] = useState<number>(lastPriceInitSOLperC3C || 0);
   const lastFetchRef = useRef<number>(0);
-  const refreshTimerRef = useRef<number | null>(null);
+  const attemptsRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
-    function mapRow(r: any): TradeRow {
-      const priceSolPerC3C = Number(r?.price_sol_per_c3c) || (Number(r?.price_c3c_per_sol) ? 1 / Number(r?.price_c3c_per_sol) : 0);
+    function toTradeRow(r: any): TradeRow {
+      const priceSolPerC3C =
+        Number(r?.price_sol_per_c3c) ||
+        (Number(r?.price_c3c_per_sol) ? 1 / Number(r?.price_c3c_per_sol) : 0);
       return {
         ts: r?.ts || "",
         wallet: r?.wallet || "",
@@ -47,45 +49,85 @@ export default function TabsContainer({
       };
     }
 
-    async function fetchLatestTrades() {
+    const isComplete = (row: TradeRow) =>
+      !!row.ts && !!row.wallet && !!row.side &&
+      (Number(row.c3c_amount) !== 0 || Number(row.sol_amount) !== 0) &&
+      Number(row.price_sol_per_c3c) > 0;
+
+    const applyRow = (row: TradeRow) => {
+      const sig = row.tx_signature;
+      if (!sig) return;
+      setTrades(prev => {
+        const arr = prev.slice();
+        const idx = arr.findIndex((x: any) => x?.tx_signature === sig);
+        if (idx >= 0) { arr[idx] = row; return arr; }
+        return [row, ...arr].slice(0, 15);
+      });
+      if (row.price_sol_per_c3c > 0) setLastPrice(row.price_sol_per_c3c);
+    };
+
+    async function fetchAndUpsertBySig(sig: string) {
+      if (!sig) return;
       try {
         const { data } = await sb
           .from("trade_events")
           .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature")
-          .order("ts", { ascending: false })
-          .limit(15);
-        const rows = (data ?? []).map(mapRow);
-        setTrades(rows);
-        const p = rows[0]?.price_sol_per_c3c;
-        if (p > 0) setLastPrice(p);
+          .eq("tx_signature", sig)
+          .limit(1)
+          .maybeSingle();
+        if (data) {
+          const row = toTradeRow(data);
+          if (isComplete(row)) applyRow(row);
+        }
       } catch {}
     }
 
-    function schedule() {
-      if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = window.setTimeout(fetchLatestTrades, 250);
+    function upsertFromPayload(p: any) {
+      const r = p?.new ?? p?.record ?? p; if (!r) return;
+      const sig: string = r?.tx_signature;
+      const row = toTradeRow(r);
+      if (isComplete(row)) {
+        applyRow(row);
+      } else {
+        // Defer: try to fetch the finalized row shortly (INSERT?�UPDATE latency)
+        const tries = (attemptsRef.current[sig] || 0) + 1;
+        attemptsRef.current[sig] = tries;
+        const delay = Math.min(1500, 250 * tries);
+        window.setTimeout(() => fetchAndUpsertBySig(sig), delay);
+        // Do not show an incomplete placeholder row
+      }
+
+      const priceSolPerC3C = Number(r?.price_sol_per_c3c) || (Number(r?.price_c3c_per_sol) ? 1 / Number(r?.price_c3c_per_sol) : 0);
+      if (priceSolPerC3C > 0) setLastPrice(priceSolPerC3C);
+
+      const now = Date.now();
+      if (now - lastFetchRef.current > 10_000) {
+        lastFetchRef.current = now;
+        sb.from("whale_ranking").select("*").limit(200).then(({ data }) => data && setWhales(data));
+      }
     }
 
     const ch = sb
       .channel("te_insert_tabs")
-      .on("postgres_changes", { event: "*", schema: "public", table: "trade_events" }, schedule)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trade_events" }, upsertFromPayload)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "trade_events" }, upsertFromPayload)
       .subscribe();
 
-    return () => { sb.removeChannel(ch); if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current); };
+    return () => { sb.removeChannel(ch); };
   }, []);
 
   return (
     <>
-      {/* 카드/헤더는 심플 헤더 */}
+      {/* 카드/?�더???�플 ?�더 */}
       <header className="masthead">
         <div className="mast-left">
           <span className="mast-icon" aria-hidden>
-            {/* 계기판 아이콘*/}
+            {/* 계기???�이�?/}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 4a8 8 0 0 0-8 8h2a6 6 0 1 1 12 0h2a8 8 0 0 0-8-8Zm-1 8a1 1 0 0 0 2 0l4-4-6 3a1 1 0 0 0 0 2Z"/>
             </svg>
           </span>
-          <h2 className="h1">대시보드</h2>
+          <h2 className="h1">?�?�보??/h2>
           <span className="kicker kicker-violet">LIVE</span>
         </div>
         <div className="tabs">
@@ -93,7 +135,7 @@ export default function TabsContainer({
             className={`tab ${tab === "rank" ? "tab-rank-active" : ""}`}
             onClick={() => setTab("rank")}
           >
-            고래 순위
+            고래 ?�위
           </button>
           <button
             className={`tab ${tab === "trades" ? "tab-trade-active" : ""}`}
@@ -113,3 +155,4 @@ export default function TabsContainer({
     </>
   );
 }
+

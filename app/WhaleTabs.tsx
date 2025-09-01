@@ -143,7 +143,8 @@ export default function WhaleTabs({
                 <th className="th">지갑</th>
                 <th className="th">{tab==="buy" ? "순매수 C3C" : "순매수 SOL"}</th>
                 <th className="th">{tab==="buy" ? "순매수 SOL" : "순매수 C3C"}</th>
-                <th className="th">P&L(SOL)</th>
+                <th className="th">미실현(SOL)</th>
+                <th className="th">총손익(SOL)</th>
               </tr>
             </thead>
             <tbody>
@@ -153,7 +154,9 @@ export default function WhaleTabs({
                 const netSOL = Number(w["순매수_SOL"] || 0);
 
                 // ✅ 예전 방식으로 고정: PnL(SOL) = netSOL + netC3C * lastPrice
-                const pnlSOL = netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
+                const realizedSOL = netSOL;
+                const unrealizedSOL = netC3C * Number(lastPriceSOLperC3C || 0);
+                const totalSOL = realizedSOL + unrealizedSOL;
 
                 const metric = Math.abs(Number(tab === "buy" ? netC3C : netSOL));
                 const widthPct = Math.max(2, Math.min(100, Math.round(100 * metric / maxMetric)));
@@ -182,9 +185,8 @@ export default function WhaleTabs({
                       {tab==="buy" ? sign6(netSOL) : sign0(netC3C)}
                     </td>
 
-                    <td className={cls("td", pnlSOL >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                      {sign6(pnlSOL)}
-                    </td>
+                    <td className={cls("td", tone(unrealizedSOL))}>{sign6(unrealizedSOL)}</td>
+                    <td className={cls("td", tone(totalSOL))}>{sign6(totalSOL)}</td>
                   </tr>
                 );
               })}
@@ -198,7 +200,9 @@ export default function WhaleTabs({
             const wallet = String(w["지갑"]);
             const netC3C = Number(w["순매수_C3C"] || 0);
             const netSOL = Number(w["순매수_SOL"] || 0);
-            const pnlSOL = netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
+            const realizedSOL = netSOL;
+            const unrealizedSOL = netC3C * Number(lastPriceSOLperC3C || 0);
+            const totalSOL = realizedSOL + unrealizedSOL;
             const metric = Math.abs(Number(tab === "buy" ? netC3C : netSOL));
             const widthPct = Math.max(2, Math.min(100, Math.round(100 * metric / maxMetric)));
 
@@ -218,10 +222,8 @@ export default function WhaleTabs({
                   <span className="mkey">{tab==="buy" ? "순매수 SOL" : "순매수 C3C"}</span>
                   <span className="mval">{tab==="buy" ? sign6(netSOL) : sign0(netC3C)}</span>
                 </div>
-                <div className="mrow">
-                  <span className="mkey">P&L(SOL)</span>
-                  <span className={cls("mval", (pnlSOL>=0) ? "text-emerald-400" : "text-rose-400")}>{sign6(pnlSOL)}</span>
-                </div>
+                <div className="mrow"><span className="mkey">미실현(SOL)</span><span className={cls("mval", tone(unrealizedSOL))}>{sign6(unrealizedSOL)}</span></div>
+                <div className="mrow"><span className="mkey">총손익(SOL)</span><span className={cls("mval", tone(totalSOL))}>{sign6(totalSOL)}</span></div>
               </div>
             );
           })}

@@ -9,7 +9,7 @@ const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
 export default async function Page() {
   noStore();
 
-  // 1) 고래 데이터
+  // 1) 고래 랭킹
   const { data: whales } = await supabase
     .from("whale_ranking")
     .select("*")
@@ -28,24 +28,22 @@ export default async function Page() {
     (Number(latest?.price_c3c_per_sol) ? 1 / Number(latest?.price_c3c_per_sol) : 0) || 0;
 
   const trades: TradeRow[] = (tradesRaw ?? []).map((r: any) => ({
-    시각: r.ts,
-    지갑: r.wallet,
-    매수_매도: r.side === "BUY" ? "매수" : "매도",
-    C3C_수량: r.c3c_amount,
-    SOL_수량: r.sol_amount,
-    가격_SOL_per_C3C:
+    ts: r.ts,
+    wallet: r.wallet,
+    side: r.side === "BUY" ? "BUY" : "SELL",
+    c3c_amount: Number(r.c3c_amount || 0),
+    sol_amount: Number(r.sol_amount || 0),
+    price_sol_per_c3c:
       Number(r.price_sol_per_c3c) ||
       (Number(r.price_c3c_per_sol) ? 1 / Number(r.price_c3c_per_sol) : 0),
-    트랜잭션: r.tx_signature,
+    tx_signature: r.tx_signature,
   }));
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="h1">요약</h1>
-        <span className="badge badge-emerald">
-          최신가 {lastPriceSOLperC3C ? nf6.format(lastPriceSOLperC3C) : "—"} SOL/C3C
-        </span>
+        <span className="badge badge-emerald">최신가 {nf6.format(Number(lastPriceSOLperC3C || 0))} SOL/C3C</span>
       </div>
 
       <TabsContainer
@@ -56,3 +54,4 @@ export default async function Page() {
     </div>
   );
 }
+
