@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+
 export const revalidate = 0; // 캐시를 사용하지 않도록 설정
 
 export async function GET() {
