@@ -20,15 +20,18 @@ function renderSolCellDesktop(side: "BUY" | "SELL", raw: number) {
   if (!Number.isFinite(val)) return "…";
   if (val < 1) return <span className="relative z-10">{nf6.format(val)}</span>;
 
-  const over10 = val >= 11;
-  const level = Math.min(11, Math.max(1, Math.floor(val))); // 1..10
-  const pct = over10 ? 100 : level * 11;
-  const hue = side === "BUY" ? 152 : 350;     // 초록 / 로즈
-  const stepLight = 64 - level * 2.5;         // 옅→짙
-  const base = `hsla(${hue}, 90%, ${stepLight}%, 0.24)`;
-  const deep = `hsla(${hue}, 85%, ${stepLight - 6}%, 0.35)`;
-  const bg = over10 ? `linear-gradient(90deg, ${base}, ${deep})` : base;
-  const ring = `inset 0 0 0 1px hsla(${hue}, 85%, 55%, .30)`;
+// 11칸 게이지: 1SOL→2칸, 2SOL→3칸 … 10SOL→11칸(가득)
+const over10 = val >= 10;
+const level = Math.min(11, Math.max(2, Math.floor(val) + 1)); // 2..11 (채울 칸 수)
+const pct = over10 ? 100 : Math.round(level * (100 / 11));    // 11칸 환산 퍼센트
+
+const hue = side === "BUY" ? 152 : 350;     // 초록 / 로즈
+const stepLight = 64 - level * 2.5;         // 옅→짙
+const base = `hsla(${hue}, 90%, ${stepLight}%, 0.24)`;
+const deep = `hsla(${hue}, 85%, ${stepLight - 6}%, 0.35)`;
+const bg = over10 ? `linear-gradient(90deg, ${base}, ${deep})` : base;
+const ring = `inset 0 0 0 1px hsla(${hue}, 85%, 55%, .30)`;
+
 
   return (
     <>
