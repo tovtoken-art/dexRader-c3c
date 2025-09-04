@@ -23,13 +23,13 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
 
   useEffect(() => { setRows(initial || []); }, [initial]);
 
-  // 공용: 최신 15건 당겨오기
+  // 공용: 최신 500건 당겨오기
   async function fetchLatest() {
     const { data, error } = await sb
       .from("trade_events")
       .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature")
       .order("ts", { ascending: false })
-      .limit(15);
+      .limit(500);
 
     if (error) {
       console.warn("[fetchLatest] error", error);
@@ -104,7 +104,7 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
               }
               return Array.from(dedup.values()).sort((a, b) =>
                 new Date(b.시각).getTime() - new Date(a.시각).getTime()
-              ).slice(0, 15);
+              ).slice(0, 500);
             });
             lastRefreshAt.current = Date.now();
             return;
@@ -143,7 +143,7 @@ export default function RecentTrades({ initial }: { initial: Row[] }) {
         </span>
         <div className="flex-1">
           <h2 className="h1">최근 체결</h2>
-          <p className="sub">최신 15건 · 실시간 반영</p>
+          <p className="sub">최신 500건 · 실시간 반영</p>
         </div>
         <span className="kicker kicker-emerald">TRADES</span>
       </div>
