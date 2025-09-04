@@ -7,10 +7,12 @@ export const dynamic = 'force-dynamic';
 
 export const revalidate = 0; // 캐시를 사용하지 않도록 설정
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const rpcUrl = process.env.QUICKNODE_RPC_URL;
-    const walletAddress = process.env.BOT_WALLET_ADDRESS;
+    const url = new URL(request.url);
+    const addrParam = url.searchParams.get('addr') || undefined;
+    const walletAddress = addrParam || process.env.BOT_WALLET_ADDRESS;
 
     if (!rpcUrl || !walletAddress) {
       // 서버 로그에만 오류를 기록하고 클라이언트에게는 일반적인 메시지를 보냅니다.
@@ -29,7 +31,7 @@ export async function GET() {
     const sol = lamports / LAMPORTS_PER_SOL;
     
     // 성공적으로 조회된 잔고를 JSON 형태로 반환합니다.
-    return NextResponse.json({ sol });
+    return NextResponse.json({ sol, address: publicKey.toBase58() });
 
   } catch (error: any) {
     console.error('API 라우트 에러:', error.message);

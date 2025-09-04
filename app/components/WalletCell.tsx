@@ -8,7 +8,40 @@ type Props = {
   onEdit?: () => void;
   onWatchToggle?: () => void;
   watched?: boolean;
+  // 신규 쿨다운 상태
+  editLocked?: boolean;      // true면 편집 잠금
+  remainSec?: number;        // 남은 초
+  progress?: number;         // 0~1 진행도
 };
+
+function ProgressRing({ size = 24, stroke = 3, progress = 0 }: { size?: number; stroke?: number; progress?: number }) {
+  const p = Math.max(0, Math.min(1, progress || 0));
+  const r = (size - stroke) / 2;
+  const C = 2 * Math.PI * r;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="absolute -top-1 -right-1 pointer-events-none"
+      aria-hidden
+    >
+      <circle cx={size / 2} cy={size / 2} r={r} stroke="currentColor" strokeWidth={stroke} fill="none" className="text-neutral-300/60 dark:text-neutral-700/60" />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        stroke="currentColor"
+        strokeWidth={stroke}
+        fill="none"
+        strokeDasharray={`${p * C} ${C - p * C}`}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        className="text-emerald-500 dark:text-emerald-400"
+      />
+    </svg>
+  );
+}
 
 export default function WalletCell({
   addr,
@@ -17,6 +50,9 @@ export default function WalletCell({
   onEdit,
   onWatchToggle,
   watched = false,
+  editLocked = false,
+  remainSec = 0,
+  progress = 0,
 }: Props) {
   const [copied, setCopied] = useState(false);
 
@@ -48,31 +84,17 @@ export default function WalletCell({
           onClick={onWatchToggle}
           aria-label="즐겨찾기 토글"
           aria-pressed={showWatched}
-          className={`${square} inline-flex items-center justify-center rounded-md ${
-            showWatched ? "text-yellow-300" : "text-neutral-400 hover:text-yellow-200"
-          }`}
+          className={`${square} inline-flex items-center justify-center rounded-md ${showWatched ? "text-yellow-300" : "text-neutral-400 hover:text-yellow-200"}`}
           title={showWatched ? "즐겨찾기 해제" : "즐겨찾기"}
         >
           {showWatched ? (
             // filled star
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              suppressHydrationWarning
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" suppressHydrationWarning>
               <path d="M12 17.3 6.2 21l1.6-6.8L2 9.2l7-.6L12 2l3 6.6 7 .6-5.8 5 1.6 6.8L12 17.3Z" />
             </svg>
           ) : (
             // outline star
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              suppressHydrationWarning
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" suppressHydrationWarning>
               <path d="M12 4.6 13.9 9l.3.6.7.1 4.8.4-3.6 3.1-.5.4.1.7 1 4.5-3.9-2.4-.6-.3-.6.3-3.9 2.4 1-4.5.1-.7-.5-.4L4.3 10l4.8-.4.7-.1.3-.6L12 4.6m0-3.3-3.1 6.8-7.6.7 5.6 4.8-1.5 6.7L12 17.3l6.6 4.2-1.5-6.7 5.6-4.8-7.6-.7L12 1.3Z" />
             </svg>
           )}
@@ -116,21 +138,32 @@ export default function WalletCell({
         </svg>
       </a>
 
-      {/* Label + edit */}
+      {/* Label */}
       {label && <span className="badge badge-emerald whitespace-nowrap">{label}</span>}
 
+      {/* Edit + cooldown */}
       {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          aria-label="라벨 편집"
-          className={`${pencilSquare} inline-flex items-center justify-center rounded-md text-neutral-300 hover:text-neutral-100`}
-          title={label ? "라벨 수정" : "라벨 추가"}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 17.2V21h3.8l11-11.1-3.8-3.8L3 17.2Zm17.7-10.1c.4-.4.4-1 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.9 1.9 3.8 3.8 1.9-1.9Z" />
-          </svg>
-        </button>
+        <div className="relative flex items-center">
+          {editLocked && <ProgressRing size={small ? 20 : 24} stroke={small ? 2 : 3} progress={progress} />}
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={editLocked}
+            aria-label="라벨 편집"
+            aria-disabled={editLocked}
+            className={`${pencilSquare} inline-flex items-center justify-center rounded-md text-neutral-300 hover:text-neutral-100 disabled:opacity-60`}
+            title={editLocked ? `${Math.max(0, Math.ceil(remainSec))}s 후 변경 가능` : label ? "라벨 수정" : "라벨 추가"}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 17.2V21h3.8l11-11.1-3.8-3.8L3 17.2Zm17.7-10.1c.4-.4.4-1 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.9 1.9 3.8 3.8 1.9-1.9Z" />
+            </svg>
+          </button>
+          {editLocked && (
+            <span className="ml-0.5 text-[10px] text-neutral-500 dark:text-neutral-400 select-none">
+              {Math.max(0, Math.ceil(remainSec))}s
+            </span>
+          )}
+        </div>
       )}
     </div>
   );
