@@ -25,7 +25,7 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
         </span>
         <div className="flex-1">
           <h3 className="h1">최근 체결</h3>
-          <p className="sub">최신 15건 · 실시간 반영</p>
+          <p className="sub">최신 500건 · 실시간 반영</p>
         </div>
         <span className="kicker kicker-emerald">TRADES</span>
       </div>
