@@ -53,7 +53,7 @@ export default function TabsContainer({
           .from("trade_events")
           .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature")
           .order("ts", { ascending: false })
-          .limit(15);
+          .limit(500);
         const rows = (data ?? []).map(mapRow);
         setTrades(rows);
         const p = rows[0]?.price_sol_per_c3c;
