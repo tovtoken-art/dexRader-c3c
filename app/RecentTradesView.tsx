@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TradeRow } from "./TabsContainer";
 
 const nf3 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
@@ -39,11 +39,7 @@ function renderSolCellDesktop(side: "BUY" | "SELL", raw: number) {
       <span
         aria-hidden
         className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-6 rounded-md"
-        style={{
-          width: `calc(${pct}% - .75rem)`,
-          background: bg,
-          boxShadow: ring,
-        }}
+        style={{ width: `calc(${pct}% - .75rem)`, background: bg, boxShadow: ring }}
       />
       <span className="relative z-10">{nf6.format(val)}</span>
     </>
@@ -56,12 +52,11 @@ function solHeatStyle(side: "BUY" | "SELL", solRaw: number): React.CSSProperties
   if (val < 1) return; // 1 SOL 미만은 색상 없음
 
   const isBuy = side === "BUY";
-  const hue = isBuy ? 152 : 356;   // 초록 / 빨강(로즈 톤)
+  const hue = isBuy ? 152 : 356;
   const sat = 82;
 
   const total = 11;
   const over10 = val >= 10;
-  // 1SOL→2칸, 2SOL→3칸 … 9SOL→10칸 (>=10SOL은 풀 그라데이션)
   const filled = over10 ? total : Math.min(total, Math.max(2, Math.floor(val) + 1));
   const pct = (filled / total) * 100;
 
@@ -80,11 +75,9 @@ function solHeatStyle(side: "BUY" | "SELL", solRaw: number): React.CSSProperties
     boxShadow: ring,
   };
 
-  // 10SOL 이상: 좌→우 그라데이션
   if (over10) {
     return { ...common, backgroundImage: `linear-gradient(90deg, ${base} 0%, ${deep} 100%)` };
   }
-  // 1~9SOL: 왼쪽 pct% 구간만 틴트
   return {
     ...common,
     backgroundImage: `linear-gradient(90deg, ${base} 0%, ${base} ${pct}%, transparent ${pct}%)`,
@@ -104,6 +97,67 @@ function soundFor(side: "BUY" | "SELL", solAmount: number) {
   return `/sounds/New_Transaction.mp3`;
 }
 
+/* ------------------------------ */
+/* 🖼️ 알림 아이콘: 캔버스로 즉석 생성(BUY/SELL 전용 원형 배지) */
+/* ------------------------------ */
+function makeNotifIcon(side: "BUY" | "SELL"): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const size = 128;
+  const c = document.createElement("canvas");
+  c.width = size; c.height = size;
+  const ctx = c.getContext("2d");
+  if (!ctx) return undefined;
+
+  const isBuy = side === "BUY";
+  const grad = ctx.createLinearGradient(0, 0, 0, size);
+  if (isBuy) {
+    grad.addColorStop(0, "#22c55e");
+    grad.addColorStop(1, "#16a34a");
+  } else {
+    grad.addColorStop(0, "#f43f5e");
+    grad.addColorStop(1, "#dc2626");
+  }
+  // 배경
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  // 안쪽 은은한 원
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.beginPath(); ctx.arc(size/2, size/2, size*0.46, 0, Math.PI*2); ctx.fill();
+
+  // 화살표
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  if (isBuy) {
+    // ⬆️
+    ctx.moveTo(size*0.50, size*0.26);
+    ctx.lineTo(size*0.75, size*0.51);
+    ctx.lineTo(size*0.63, size*0.63);
+    ctx.lineTo(size*0.54, size*0.55);
+    ctx.lineTo(size*0.54, size*0.76);
+    ctx.lineTo(size*0.46, size*0.76);
+    ctx.lineTo(size*0.46, size*0.55);
+    ctx.lineTo(size*0.37, size*0.63);
+    ctx.lineTo(size*0.25, size*0.51);
+    ctx.closePath();
+  } else {
+    // ⬇️
+    ctx.moveTo(size*0.50, size*0.74);
+    ctx.lineTo(size*0.25, size*0.49);
+    ctx.lineTo(size*0.37, size*0.37);
+    ctx.lineTo(size*0.46, size*0.45);
+    ctx.lineTo(size*0.46, size*0.24);
+    ctx.lineTo(size*0.54, size*0.24);
+    ctx.lineTo(size*0.54, size*0.45);
+    ctx.lineTo(size*0.63, size*0.37);
+    ctx.lineTo(size*0.75, size*0.49);
+    ctx.closePath();
+  }
+  ctx.fill();
+
+  return c.toDataURL("image/png");
+}
+
 export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
   // 이미 본 트랜잭션(중복 재생 방지)
   const seenTx = useRef<Set<string>>(new Set());
@@ -113,6 +167,46 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
   const audioUnlocked = useRef(false);
   // 오디오 캐시
   const audioCache = useRef<Record<string, HTMLAudioElement>>({});
+
+  // 🔔 사운드 on/off (기본 ON, localStorage 보존)
+  const [soundOn, setSoundOn] = useState(true);
+  const soundOnRef = useRef(soundOn);
+  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+  useEffect(() => {
+    try { const v = localStorage.getItem("trades_sound_on"); if (v === "0") setSoundOn(false); } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("trades_sound_on", soundOn ? "1" : "0"); } catch {}
+  }, [soundOn]);
+
+  // 🔔 브라우저 알림 (탭이 숨겨진 경우 시스템 알림)
+  const [notifyOnHidden, setNotifyOnHidden] = useState(true);
+  useEffect(() => {
+    try { const v = localStorage.getItem("trades_notify_on_hidden"); if (v === "0") setNotifyOnHidden(false); } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("trades_notify_on_hidden", notifyOnHidden ? "1" : "0"); } catch {}
+  }, [notifyOnHidden]);
+
+  const askNotificationPermission = async () => {
+    if (!("Notification" in window)) return false;
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") return false;
+    try { return (await Notification.requestPermission()) === "granted"; }
+    catch { return false; }
+  };
+
+  // 알림 아이콘 캐시
+  const notifIconCache = useRef<{ BUY?: string; SELL?: string }>({});
+
+  const getNotifIcon = (side: "BUY" | "SELL") => {
+    let u = notifIconCache.current[side];
+    if (!u) {
+      u = makeNotifIcon(side) || undefined;
+      if (u) notifIconCache.current[side] = u;
+    }
+    return u;
+  };
 
   // mount: 초기 rows는 seen으로만 등록(소리 X) + 사용자 상호작용으로 오디오 언락
   useEffect(() => {
@@ -135,7 +229,7 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // rows가 바뀔 때: 새로 들어온 tx만 골라서 맨 위 1건만 재생
+  // 새 거래 감지 → 사운드 + (백그라운드면) 시스템 알림
   useEffect(() => {
     if (!readyAfterMount.current || !audioUnlocked.current) return;
     if (!rows?.length) return;
@@ -148,19 +242,60 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
     }
 
     if (newlyArrived.length) {
-      const top = newlyArrived[0]; // 화면 최상단 새 거래 기준으로 1회 재생
+      const top = newlyArrived[0];
       const url = soundFor(top.side as "BUY" | "SELL", Number(top.sol_amount) || 0);
 
-      try {
-        let a = audioCache.current[url];
-        if (!a) {
-          a = new Audio(url);
-          a.preload = "auto";
-          audioCache.current[url] = a;
-        }
-        a.currentTime = 0;
-        a.play().catch(() => { /* 자동재생 제한 등 무시 */ });
-      } catch { /* no-op */ }
+      // 🔊 효과음
+      if (soundOnRef.current) {
+        try {
+          let a = audioCache.current[url];
+          if (!a) {
+            a = new Audio(url);
+            a.preload = "auto";
+            audioCache.current[url] = a;
+          }
+          a.currentTime = 0;
+          a.play().catch(() => {});
+        } catch {}
+      }
+
+      // 🔔 탭이 숨겨져 있으면 시스템 알림 (권한 허용 시)
+      const hidden = typeof document !== "undefined" && document.visibilityState !== "visible";
+      if (hidden && notifyOnHidden && "Notification" in window) {
+        (async () => {
+          const ok = await askNotificationPermission();
+          if (!ok) return;
+          try {
+            const isBuy = top.side === "BUY";
+            const emoji = isBuy ? "🟢" : "🔴";
+            const title = `${emoji} ${isBuy ? "매수" : "매도"} ${nf6.format(Math.abs(Number(top.sol_amount) || 0))} SOL`;
+            const body  = `${short(top.wallet)} · ${nf3.format(Number(top.c3c_amount) || 0)} C3C · ${nf6.format(Number(top.price_sol_per_c3c) || 0)} SOL/C3C`;
+
+            const icon = getNotifIcon(top.side as "BUY" | "SELL");
+            const ts = Date.parse((top as any)?.ts || "") || Date.now();
+
+            const n = new Notification(title, {
+              body,
+              icon,                  // 컬러 원형 아이콘
+              badge: icon,           // (가능한 브라우저에서) 작은 배지
+              lang: "ko-KR",
+              timestamp: ts,         // 일부 브라우저 표시
+              tag: "trades",         // 같은 태그면 갱신
+              renotify: true,        // 갱신 시 진동/하이라이트
+              silent: true,          // 효과음은 별도 재생
+              requireInteraction: false, // 필요 시 true로 고정 가능
+            });
+
+            n.onclick = () => {
+              try {
+                if (top.tx_signature) window.open(`https://solscan.io/tx/${top.tx_signature}`, "_blank");
+                window.focus();
+                n.close();
+              } catch {}
+            };
+          } catch {}
+        })();
+      }
 
       // 본 것으로 처리(이번에 들어온 모든 신규 tx)
       for (const r of newlyArrived) {
@@ -168,6 +303,27 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
       }
     }
   }, [rows]);
+
+  // 🔕 OFF로 바꾸면 재생 중인 소리도 즉시 멈춤
+  const toggleSound = () => {
+    setSoundOn(prev => {
+      const next = !prev;
+      if (!next) {
+        for (const a of Object.values(audioCache.current)) {
+          try { a.pause(); a.currentTime = 0; } catch {}
+        }
+      }
+      return next;
+    });
+  };
+
+  const toggleNotify = async () => {
+    if (!notifyOnHidden) {
+      const ok = await askNotificationPermission();
+      if (!ok) return;
+    }
+    setNotifyOnHidden(v => !v);
+  };
 
   return (
     <div className="card card-trades">
@@ -181,6 +337,59 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
           <h3 className="h1">최근 체결</h3>
           <p className="sub">최신 500건 · 실시간 반영</p>
         </div>
+
+        {/* 🔊 사운드 토글 */}
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          title={soundOn ? "효과음 끄기" : "효과음 켜기"}
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium border transition mr-2
+            ${soundOn
+              ? "bg-emerald-500/10 text-emerald-200 border-emerald-500/30 hover:bg-emerald-500/20"
+              : "bg-neutral-800/60 text-neutral-300 border-neutral-700 hover:bg-neutral-700/60"
+            }`}
+        >
+          {soundOn ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0" fill="currentColor">
+                <path d="M5 10v4h3l4 3V7l-4 3H5zm11.6 2a4.6 4.6 0 0 0-2.3-4v8a4.6 4.6 0 0 0 2.3-4Z"/>
+              </svg>
+              <span className="hidden sm:inline">Sound</span>
+              <span className="sm:hidden">ON</span>
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0" fill="currentColor">
+                <path d="M16.5 12a4.5 4.5 0 0 0-2.2-3.9v-1a6 6 0 0 1 3.1 4.9m1.9 0A7.9 7.9 0 0 0 14.3 5l1.4-1.4A9.9 9.9 0 0 1 20.3 12M3.3 2L2 3.3 8.7 10H5v4h3l4 3v-5.7l5 5L18.7 18 3.3 2Z"/>
+              </svg>
+              <span className="hidden sm:inline">Muted</span>
+              <span className="sm:hidden">OFF</span>
+            </>
+          )}
+        </button>
+
+        {/* 🔔 백그라운드 알림 토글 */}
+        {"Notification" in globalThis && (
+          <button
+            type="button"
+            onClick={toggleNotify}
+            aria-pressed={notifyOnHidden}
+            title={notifyOnHidden ? "탭이 숨겨져도 알림 끄기" : "탭이 숨겨져도 알림 켜기"}
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium border transition mr-2
+              ${notifyOnHidden
+                ? "bg-cyan-500/10 text-cyan-200 border-cyan-500/30 hover:bg-cyan-500/20"
+                : "bg-neutral-800/60 text-neutral-300 border-neutral-700 hover:bg-neutral-700/60"
+              }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0" fill="currentColor">
+              <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2Zm6-6v-5a6 6 0 0 0-5-5.9V4a1 1 0 0 0-2 0v1.1A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2Z"/>
+            </svg>
+            <span className="hidden sm:inline">Notify</span>
+            <span className="sm:hidden">{notifyOnHidden ? "ON" : "OFF"}</span>
+          </button>
+        )}
+
         <span className="kicker kicker-emerald">TRADES</span>
       </div>
 
