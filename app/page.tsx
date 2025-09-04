@@ -42,7 +42,7 @@ export default async function Page() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="h1">요약</h1>
+        <h1 className="h1">DEX_Rader</h1>
         <span className="badge badge-emerald">최신가 {nf6.format(Number(lastPriceSOLperC3C || 0))} SOL/C3C</span>
       </div>
 

@@ -4,7 +4,7 @@ import type { Metadata, Viewport } from "next";
 import dynamic from "next/dynamic";
 
 export const metadata: Metadata = {
-  title: "C3C 대시보드",
+  title: "DEX_Rader",
   description: "C3C whales and trades",
 };
 
