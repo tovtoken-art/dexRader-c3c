@@ -20,7 +20,7 @@ export default async function Page() {
     .from("trade_events")
     .select("ts,wallet,side,c3c_amount,sol_amount,price_c3c_per_sol,price_sol_per_c3c,tx_signature")
     .order("ts", { ascending: false })
-    .limit(15);
+    .limit(500);
 
   const latest = tradesRaw?.[0];
   const lastPriceSOLperC3C =

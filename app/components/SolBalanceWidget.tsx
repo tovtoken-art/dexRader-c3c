@@ -48,6 +48,8 @@ function useSparklinePoints(values: number[], width = 140, height = 36, pad = 4)
 
 const ChipInline: React.FC<{ label: string; value: number | null }> = ({ label, value }) => {
   if (value == null) return null;
+  // Hide visually-zero changes that would round to 0.0000
+  if (Math.abs(value) < 0.00005) return null;
   const sign = value > 0 ? "+" : value < 0 ? "-" : "±";
   const tone = value > 0 ? "text-emerald-600 dark:text-emerald-400" : value < 0 ? "text-rose-600 dark:text-rose-400" : "text-neutral-500 dark:text-neutral-400";
   return (
@@ -57,6 +59,8 @@ const ChipInline: React.FC<{ label: string; value: number | null }> = ({ label, 
 
 const ChipBadge: React.FC<{ value: number | null }> = ({ value }) => {
   if (value == null) return null;
+  // Hide visually-zero changes that would round to 0.0000
+  if (Math.abs(value) < 0.00005) return null;
   const sign = value > 0 ? "+" : value < 0 ? "-" : "±";
   const tone = value > 0 ? "emerald" : value < 0 ? "rose" : "neutral";
   const toneMap: Record<string, string> = {
