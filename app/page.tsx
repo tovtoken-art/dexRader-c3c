@@ -13,7 +13,7 @@ export default async function Page() {
   const { data: whales } = await supabase
     .from("whale_ranking")
     .select("*")
-    .limit(200);
+    .limit(2000);
 
   // 2) 최근 체결 15건 + 최신가
   const { data: tradesRaw } = await supabase

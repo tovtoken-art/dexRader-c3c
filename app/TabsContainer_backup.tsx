@@ -103,7 +103,7 @@ export default function TabsContainer({
       const now = Date.now();
       if (now - lastFetchRef.current > 10_000) {
         lastFetchRef.current = now;
-        sb.from("whale_ranking").select("*").limit(200).then(({ data }) => data && setWhales(data));
+        sb.from("whale_ranking").select("*").limit(2000).then(({ data }) => data && setWhales(data));
       }
     }
 
