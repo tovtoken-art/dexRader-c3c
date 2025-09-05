@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* 전역 헤더 */}
         <header className="w-full border-b border-neutral-200 dark:border-neutral-700">
           <div className="container flex items-center justify-between h-14">
-            <div className="brand text-base font-semibold">DEX_Rader</div>
+            <h1 className="brand text-base font-semibold">DEX_Rader</h1>
             <div className="flex items-center gap-4">
               
 
