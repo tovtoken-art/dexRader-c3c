@@ -377,13 +377,13 @@ export default function SolBalanceWidget() {
         setNextAt(Date.now() + COOLDOWN_MS);
       } catch {
         await refreshCooldown();
-        alert("30초 쿨다운 중이라 아직 변경할 수 없다");
+        alert("30초 쿨다운 중입니다.");
       }
       try {
         localStorage.setItem("balance_wallet", addr);
       } catch {}
     } catch {
-      alert("유효한 Solana 지갑 주소가 아니다");
+      alert("유효한 Solana 지갑 주소가 아닙니다.");
     }
   };
 

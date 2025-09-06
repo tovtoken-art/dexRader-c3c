@@ -4,7 +4,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "../lib/supabase";
 import TabsContainer, { TradeRow } from "./TabsContainer";
 
-const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
+const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 10 });
 
 export default async function Page() {
   noStore();
