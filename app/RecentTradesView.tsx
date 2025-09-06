@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { TradeRow } from "./TabsContainer";
 
 const nf3 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
-const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
+const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 8 });
 
 function short(x: string) {
   return x?.length > 12 ? `${x.slice(0, 6)}…${x.slice(-6)}` : x || "";
