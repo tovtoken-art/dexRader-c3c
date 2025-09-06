@@ -15,7 +15,7 @@ function short(x: string) {
 }
 function sign0(n: number) {
   const v = Number(n || 0);
-  const s = v >= 0 ? "+" : "";
+  const s = v >= 0 ? "+" : "-";
   return s + nf0.format(Math.abs(v));
 }
 function sign6(n: number) {
@@ -53,7 +53,7 @@ export default function WhaleTabs({
       const wallets = (whales ?? []).map(w => String(w["지갑"])).filter(Boolean);
       if (!wallets.length) return;
       const { data } = await sb
-        .from("wallet_labels")
+        .from("wallet_labels_c3c")
         .select("wallet,label")
         .in("wallet", wallets.slice(0, 500));
       const map: LabelMap = {};
@@ -92,7 +92,7 @@ export default function WhaleTabs({
     const current = labels[wallet] || "";
     const label = window.prompt("지갑 라벨을 입력", current ?? "");
     if (label == null) return;
-    const { error } = await sb.from("wallet_labels").upsert({ wallet, label });
+    const { error } = await sb.from("wallet_labels_c3c").upsert({ wallet, label });
     if (error) { alert("라벨 저장 실패"); return; }
     setLabels(m => ({ ...m, [wallet]: label }));
   }

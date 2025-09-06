@@ -142,33 +142,33 @@ export default function SolBalanceWidget() {
     const span = max - min || 1;
     const w = 140, h = 36, pad = 4;
     const stepX = (w - pad * 2) / Math.max(hist.length - 1, 1);
-    return hist.map((v, i) => `${(pad + i * stepX).toFixed(1)},${(pad + (1 - (v - min) / span) * (h - pad * 2)).toFixed(1)}`).join(" ");
+    return hist
+      .map((v, i) => `${(pad + i * stepX).toFixed(1)},${(pad + (1 - (v - min) / span) * (h - pad * 2)).toFixed(1)}`)
+      .join(" ");
   }, [hist]);
 
-  // 잔고 읽기
-  const fetchBalance = async () => {
+  // 잔고 읽기. 주소 인자 우선
+  const fetchBalance = async (addr?: string | null) => {
+    const target = addr ?? wallet;
     if (inflightRef.current) return lastBalRef.current;
     inflightRef.current = true;
     setSpinning(true);
     try {
       const ctrl = new AbortController();
       const tm = setTimeout(() => ctrl.abort(), 10_000);
-      const url = wallet ? `${API_ENDPOINT}?addr=${encodeURIComponent(wallet)}` : API_ENDPOINT;
+      const url = target ? `${API_ENDPOINT}?addr=${encodeURIComponent(target)}` : API_ENDPOINT;
       const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
       clearTimeout(tm);
       if (!res.ok) throw new Error("서버 응답 오류");
       const data: { sol: number; address?: string } = await res.json();
 
-      // 기본 봇 주소 자동 설정
-      if (!wallet && data?.address) setWallet(data.address);
+      // 기본 지갑 자동 채택 가드. 사용자가 지갑을 지정하지 않았을 때만 채택
+      if (!addr && !wallet && isDefaultWallet && data?.address) setWallet(data.address);
 
       const prev = lastBalRef.current;
       const next = data.sol;
 
-      // ref 선갱신
       lastBalRef.current = next;
-
-      // 상태 갱신
       setBal(next);
       setHist(h => (h[h.length - 1] === next ? h : [...h, next].slice(-MAX_POINTS)));
       setTouchedAt(new Date());
@@ -189,28 +189,20 @@ export default function SolBalanceWidget() {
             return [residual, ...(prevD || [])].slice(0, 2);
           });
 
-          // 🔊 외부 입금/출금 사운드(절대값 5 SOL 이상만)
-          if (willPush) {
-            const bigMove = Math.abs(residual) >= 5;
-            if (bigMove) {
-              playSound(residual > 0 ? DEPOSIT_SOUND_URL : WITHDRAW_SOUND_URL);
-            }
-          }
+          const bigMove = Math.abs(residual) >= 5;
+          if (willPush && bigMove) playSound(residual > 0 ? DEPOSIT_SOUND_URL : WITHDRAW_SOUND_URL);
         }
 
-        // 🔊 기본 지갑 저잔액 알림(5 SOL 미만으로 하락 시 1회)
         if (isDefaultWallet) {
           const crossedDown = prev >= LOW_BALANCE_SOL && next < LOW_BALANCE_SOL;
           if (crossedDown && !lowWarnedRef.current) {
             playSound(LOW_BAL_SOUND_URL);
             lowWarnedRef.current = true;
           } else if (next >= LOW_BALANCE_SOL) {
-            // 임계치 위로 회복하면 다시 알릴 준비
             lowWarnedRef.current = false;
           }
         }
 
-        // 정리
         pendingTradeSumRef.current = 0;
       }
 
@@ -261,44 +253,53 @@ export default function SolBalanceWidget() {
     } catch {}
   };
 
-  // 초기 로드
+  // 초기 로드. 지갑을 먼저 결정 후 그 주소로만 fetch
   useEffect(() => {
     (async () => {
+      let init: string | null = null;
       try {
         const { data } = await sb
-          .from("app_settings")
+          .from("app_settings_c3c")
           .select("value,updated_at")
           .eq("key", "balance_wallet")
           .maybeSingle();
+
         const v = (data as any)?.value as string | undefined;
         if (v !== undefined) setIsDefaultWallet(!(v?.length));
-        if (v) setWallet(v);
+        if (v && v.length) init = v;
+
         const upd = (data as any)?.updated_at as string | undefined;
         if (upd) setNextAt(new Date(upd).getTime() + COOLDOWN_MS);
-      } catch {
+      } catch {}
+
+      if (!init) {
         try {
           const ls = localStorage.getItem("balance_wallet");
-          if (ls) {
-            setWallet(ls);
-            setIsDefaultWallet(false);
-          } else {
-            setIsDefaultWallet(true);
-          }
+          if (ls) init = ls;
         } catch {}
       }
-      const s = await fetchBalance();
-      if (wallet) await seedFromTrades(wallet, s ?? undefined);
+
+      if (init) {
+        setWallet(init);
+        setIsDefaultWallet(false);
+      } else {
+        setWallet(null);
+        setIsDefaultWallet(true);
+      }
+
+      const s = await fetchBalance(init);
+      if (init) await seedFromTrades(init, s ?? undefined);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // app_settings 실시간 반영
+  // app_settings_c3c 실시간 반영
   useEffect(() => {
     const ch = sb
       .channel("app-settings-balance-wallet")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "app_settings", filter: "key=eq.balance_wallet" },
+        { event: "*", schema: "public", table: "app_settings_c3c", filter: "key=eq.balance_wallet" },
         (p: any) => {
           const v = p?.new?.value as string | undefined;
           const upd = p?.new?.updated_at as string | undefined;
@@ -308,7 +309,6 @@ export default function SolBalanceWidget() {
             try {
               v.length ? localStorage.setItem("balance_wallet", v) : localStorage.removeItem("balance_wallet");
             } catch {}
-            // 기본 지갑 전환 시 저잔액 경고 초기화
             lowWarnedRef.current = false;
           }
           if (upd) setNextAt(new Date(upd).getTime() + COOLDOWN_MS);
@@ -324,7 +324,7 @@ export default function SolBalanceWidget() {
     if (!wallet) return setLabel("");
     (async () => {
       try {
-        const { data } = await sb.from("wallet_labels").select("label").eq("wallet", wallet).maybeSingle();
+        const { data } = await sb.from("wallet_labels_c3c").select("label").eq("wallet", wallet).maybeSingle();
         if (!cancel) setLabel(((data as any)?.label) || "");
       } catch {
         if (!cancel) setLabel("");
@@ -346,7 +346,7 @@ export default function SolBalanceWidget() {
       pendingTradeSumRef.current = 0;
       lowWarnedRef.current = false;
 
-      const s = await fetchBalance();
+      const s = await fetchBalance(wallet);
       await seedFromTrades(wallet, s ?? undefined);
       lastTradeAt.current = 0;
     })();
@@ -372,7 +372,7 @@ export default function SolBalanceWidget() {
               return [d, ...(prevD || [])].slice(0, 2);
             });
           }
-          await fetchBalance();
+          await fetchBalance(wallet);
         }
       )
       .subscribe();
@@ -381,7 +381,7 @@ export default function SolBalanceWidget() {
 
   // 폴링
   useEffect(() => {
-    const id = setInterval(() => { if (wallet) fetchBalance(); }, BAL_POLL_MS);
+    const id = setInterval(() => { if (wallet) fetchBalance(wallet); }, BAL_POLL_MS);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet]);
@@ -389,46 +389,78 @@ export default function SolBalanceWidget() {
   const onEdit = async () => {
     const cur = wallet || "";
     const val = (window.prompt("지갑 주소 입력 (빈칸: 봇 지갑)", cur) ?? cur).trim();
+
+    // 빈칸: 기본 지갑
     if (val === "") {
       setWallet(null);
       setIsDefaultWallet(true);
       lowWarnedRef.current = false;
       try {
-        const { error } = await sb.from("app_settings").upsert({ key: "balance_wallet", value: "" });
+        // PK 충돌 기준을 명확히 지정하고, updated_at을 받아온다
+        const { data, error } = await sb
+          .from("app_settings_c3c")
+          .upsert({ key: "balance_wallet", value: "" }, { onConflict: "key" })
+          .select("updated_at")
+          .single();
         if (error) throw error;
-        setNextAt(Date.now() + COOLDOWN_MS);
-      } catch {
-        await refreshCooldown();
+
+        // 서버 updated_at 기준으로 잠금
+        setNextAt(new Date(data.updated_at as string).getTime() + COOLDOWN_MS);
+      } catch (e) {
+        // 실제로 잠긴 상황인지 확인 후 메시지
+        const lockedNow = await refreshCooldown();
+        if (lockedNow) alert("30초 쿨다운 중입니다.");
+        else alert("업데이트 실패");
       }
       try { localStorage.removeItem("balance_wallet"); } catch {}
       return;
     }
+
+    // 주소 검증
     try {
       const addr = new PublicKey(val).toBase58();
       setWallet(addr);
       setIsDefaultWallet(false);
       lowWarnedRef.current = false;
+
       try {
-        const { error } = await sb.from("app_settings").upsert({ key: "balance_wallet", value: addr });
+        const { data, error } = await sb
+          .from("app_settings_c3c")
+          .upsert({ key: "balance_wallet", value: addr }, { onConflict: "key" })
+          .select("updated_at")
+          .single();
         if (error) throw error;
-        setNextAt(Date.now() + COOLDOWN_MS);
-      } catch {
-        await refreshCooldown();
-        alert("30초 쿨다운 중입니다.");
+
+        setNextAt(new Date(data.updated_at as string).getTime() + COOLDOWN_MS);
+      } catch (e) {
+        const lockedNow = await refreshCooldown();
+        if (lockedNow) alert("30초 쿨다운 중입니다.");
+        else alert("업데이트 실패");
       }
+
       try { localStorage.setItem("balance_wallet", addr); } catch {}
     } catch {
       alert("유효한 Solana 지갑 주소가 아닙니다.");
     }
   };
 
-  const refreshCooldown = async () => {
-    try {
-      const { data } = await sb.from("app_settings").select("updated_at").eq("key", "balance_wallet").maybeSingle();
-      const upd = (data as any)?.updated_at as string | undefined;
-      if (upd) setNextAt(new Date(upd).getTime() + COOLDOWN_MS);
-    } catch {}
-  };
+const refreshCooldown = async (): Promise<boolean> => {
+  try {
+    const { data } = await sb
+      .from("app_settings_c3c")
+      .select("updated_at")
+      .eq("key", "balance_wallet")
+      .maybeSingle();
+
+    const upd = (data as any)?.updated_at as string | undefined;
+    if (upd) {
+      const t = new Date(upd).getTime() + COOLDOWN_MS;
+      setNextAt(t);
+      return t > Date.now();
+    }
+  } catch {}
+  return false;
+};
 
   const StatusTime = (
     <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
@@ -558,7 +590,14 @@ export default function SolBalanceWidget() {
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5"><path fill="currentColor" d="M3 17.2V21h3.8l11-11.1-3.8-3.8L3 17.2Zm17.7-10.1c.4-.4.4-1 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.9 1.9 3.8 3.8 1.9-1.9Z" /></svg>
               </button>
             </div>
-            <button type="button" onClick={fetchBalance} disabled={spinning} aria-label="잔고 새로고침" className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white/70 text-neutral-700 shadow-sm transition active:scale-95 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-800/80 dark:text-neutral-200" title="새로고침">
+            <button
+              type="button"
+              onClick={() => fetchBalance(wallet)}
+              disabled={spinning}
+              aria-label="잔고 새로고침"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white/70 text-neutral-700 shadow-sm transition active:scale-95 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-800/80 dark:text-neutral-200"
+              title="새로고침"
+            >
               <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 ${spinning ? "animate-spin" : ""}`}><path fill="currentColor" d="M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z" /></svg>
             </button>
           </div>

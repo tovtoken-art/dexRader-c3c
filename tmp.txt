@@ -32,10 +32,10 @@ function cls(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-// Safe accessor for wallet address (supports Korean column name "지�? or fallback "wallet")
+// Safe accessor for wallet address (supports Korean column name "지�? or fallback "wallet")
 function getWallet(w: any): string {
   try {
-    return String((w as any)?.["지�?] || (w as any)?.wallet || "");
+    return String((w as any)?.["지�?] || (w as any)?.wallet || "");
   } catch {
     return "";
   }
@@ -60,10 +60,10 @@ export default function WhaleTabs({
 
   useEffect(() => {
     (async () => {
-      const wallets = (whales ?? []).map(w => String(w["지�?])).filter(Boolean);
+      const wallets = (whales ?? []).map(w => String(w["지�?])).filter(Boolean);
       if (!wallets.length) return;
       const { data } = await sb
-        .from("wallet_labels")
+        .from("wallet_labels_c3c")
         .select("wallet,label")
         .in("wallet", wallets.slice(0, 500));
       const map: LabelMap = {};
@@ -128,36 +128,36 @@ export default function WhaleTabs({
 
   const byC3C = useMemo(
     () => [...(whales ?? [])]
-      .sort((a, b) => Number(b["?�매??C3C"] || 0) - Number(a["?�매??C3C"] || 0))
+      .sort((a, b) => Number(b["?�매??C3C"] || 0) - Number(a["?�매??C3C"] || 0))
       .map((w, i) => ({ ...w, _rank: i + 1 })),
     [whales]
   );
   const bySOL = useMemo(
     () => [...(whales ?? [])]
-      .sort((a, b) => Number(b["?�매??SOL"] || 0) - Number(a["?�매??SOL"] || 0))
+      .sort((a, b) => Number(b["?�매??SOL"] || 0) - Number(a["?�매??SOL"] || 0))
       .map((w, i) => ({ ...w, _rank: i + 1 })),
     [whales]
   );
 
   const rowsBase = tab === "buy" ? byC3C : bySOL;
   const rows = rowsBase.filter((w: any) => {
-    const wallet = String(w["지�?] || "");
+    const wallet = String(w["지�?] || "");
     const okSearch = !q || wallet.toLowerCase().includes(q.toLowerCase()) || (labels[wallet] || "").includes(q);
     const okWatch = !watchOnly || watch.includes(wallet);
     return okSearch && okWatch;
   });
 
   const maxMetric = useMemo(() => {
-    const nums = rows.map(w => Math.abs(Number(tab === "buy" ? w["?�매??C3C"] : w["?�매??SOL"]) || 0));
+    const nums = rows.map(w => Math.abs(Number(tab === "buy" ? w["?�매??C3C"] : w["?�매??SOL"]) || 0));
     return Math.max(1, ...nums);
   }, [rows, tab]);
 
   async function setLabel(wallet: string) {
     const current = labels[wallet] || "";
-    const label = window.prompt("지�??�벨???�력", current ?? "");
+    const label = window.prompt("지�??�벨???�력", current ?? "");
     if (label == null) return;
-    const { error } = await sb.from("wallet_labels").upsert({ wallet, label });
-    if (error) { alert("?�벨 ?�???�패"); return; }
+    const { error } = await sb.from("wallet_labels_c3c").upsert({ wallet, label });
+    if (error) { alert("?�벨 ?�???�패"); return; }
     setLabels(m => ({ ...m, [wallet]: label }));
   }
   function toggleWatch(wallet: string){
@@ -177,8 +177,8 @@ export default function WhaleTabs({
           </svg>
         </span>
         <div className="flex-1">
-          <h2 className="h1">고래 ?�위</h2>
-          <p className="sub">{tab === "buy" ? "C3C 기�? ?�위" : "SOL 기�? ?�위"} · 기�?가 {nf6.format(lastPriceSOLperC3C)} SOL/C3C</p>
+          <h2 className="h1">고래 ?�위</h2>
+          <p className="sub">{tab === "buy" ? "C3C 기�? ?�위" : "SOL 기�? ?�위"} · 기�?가 {nf6.format(lastPriceSOLperC3C)} SOL/C3C</p>
         </div>
         <span className="kicker kicker-violet">RANK</span>
       </div>
@@ -186,38 +186,38 @@ export default function WhaleTabs({
       <div className="section-body">
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mb-4">
           <div className="flex gap-2 bg-neutral-900/60 border border-neutral-700 rounded-xl p-1">
-            <button onClick={() => setTab("buy")} className={cls("px-3 py-1 rounded-lg touch", tab==="buy"?"bg-violet-500/20":"hover:bg-white/5")}>?�매????��</button>
-            <button onClick={() => setTab("sell")} className={cls("px-3 py-1 rounded-lg touch", tab==="sell"?"bg-violet-500/20":"hover:bg-white/5")}>?�매????��</button>
+            <button onClick={() => setTab("buy")} className={cls("px-3 py-1 rounded-lg touch", tab==="buy"?"bg-violet-500/20":"hover:bg-white/5")}>?�매????��</button>
+            <button onClick={() => setTab("sell")} className={cls("px-3 py-1 rounded-lg touch", tab==="sell"?"bg-violet-500/20":"hover:bg-white/5")}>?�매????��</button>
           </div>
           <div className="flex gap-2">
-            <input className="input" placeholder="지�??�는 ?�벨 검?? value={q} onChange={(e)=>setQ(e.target.value)} />
+            <input className="input" placeholder="지�??�는 ?�벨 검?? value={q} onChange={(e)=>setQ(e.target.value)} />
             <label className="switch">
               <input type="checkbox" checked={watchOnly} onChange={(e)=>setWatchOnly(e.target.checked)} />
-              <span>관?�만</span>
+              <span>관?�만</span>
             </label>
           </div>
         </div>
 
-        {/* ?�스?�톱 ??*/}
+        {/* ?�스?�톱 ??*/}
         <div className="desktop-only overflow-x-auto">
           <table className="table">
             <thead className="thead-sticky">
               <tr>
-                <th className="th">?�위</th>
-                <th className="th">지�?/th>
-                <th className="th">{tab==="buy" ? "?�매??C3C" : "?�매??SOL"}</th>
-                <th className="th">{tab==="buy" ? "?�매??SOL" : "?�매??C3C"}</th>
-                <th className="th">?�현?�익(SOL)</th>
-                <th className="th">미실?�손??SOL)</th>
+                <th className="th">?�위</th>
+                <th className="th">지�?/th>
+                <th className="th">{tab==="buy" ? "?�매??C3C" : "?�매??SOL"}</th>
+                <th className="th">{tab==="buy" ? "?�매??SOL" : "?�매??C3C"}</th>
+                <th className="th">?�현?�익(SOL)</th>
+                <th className="th">미실?�손??SOL)</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((w: any) => {
-                const wallet = String(w["지�?]);
-                const netC3C = Number(w["?�매??C3C"] || 0);
-                const netSOL = Number(w["?�매??SOL"] || 0);
+                const wallet = String(w["지�?]);
+                const netC3C = Number(w["?�매??C3C"] || 0);
+                const netSOL = Number(w["?�매??SOL"] || 0);
 
-                // ???�전 방식?�로 고정: PnL(SOL) = netSOL + netC3C * lastPrice
+                // ???�전 방식?�로 고정: PnL(SOL) = netSOL + netC3C * lastPrice
                 const st = pnlMap[wallet] || { R: 0, U: 0, Q: 0, A: 0, C: 0 };
                 const pnlSOL = netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
 
@@ -264,9 +264,9 @@ export default function WhaleTabs({
         {/* 모바??카드 */}
         <div className="mobile-only space-y-3">
           {rows.map((w: any) => {
-            const wallet = String(w["지�?]);
-            const netC3C = Number(w["?�매??C3C"] || 0);
-            const netSOL = Number(w["?�매??SOL"] || 0);
+            const wallet = String(w["지�?]);
+            const netC3C = Number(w["?�매??C3C"] || 0);
+            const netSOL = Number(w["?�매??SOL"] || 0);
             const st = pnlMap[wallet] || { R: 0, U: 0, Q: 0, A: 0, C: 0 };
             const pnlSOL = netSOL + netC3C * Number(lastPriceSOLperC3C || 0);
             const metric = Math.abs(Number(tab === "buy" ? netC3C : netSOL));
@@ -278,22 +278,22 @@ export default function WhaleTabs({
                   <div className="font-mono">{short(wallet)}</div>
                   {labels[wallet] && <span className="badge badge-emerald">{labels[wallet]}</span>}
                 </div>
-                <div className="mrow"><span className="mkey">?�위</span><span className="mval">{w._rank}</span></div>
+                <div className="mrow"><span className="mkey">?�위</span><span className="mval">{w._rank}</span></div>
                 <div className="mrow">
-                  <span className="mkey">{tab==="buy" ? "?�매??C3C" : "?�매??SOL"}</span>
+                  <span className="mkey">{tab==="buy" ? "?�매??C3C" : "?�매??SOL"}</span>
                   <span className="mval">{tab==="buy" ? sign0(netC3C) : sign6(netSOL)}</span>
                 </div>
                 <div className="rankwrap"><div className="rankbar" style={{ width: `${widthPct}%` }} /></div>
                 <div className="mrow">
-                  <span className="mkey">{tab==="buy" ? "?�매??SOL" : "?�매??C3C"}</span>
+                  <span className="mkey">{tab==="buy" ? "?�매??SOL" : "?�매??C3C"}</span>
                   <span className="mval">{tab==="buy" ? sign6(netSOL) : sign0(netC3C)}</span>
                 </div>
                 <div className="mrow">
-                  <span className="mkey">?�현?�익(SOL)</span>
+                  <span className="mkey">?�현?�익(SOL)</span>
                   <span className={cls("mval", (st.R>=0) ? "text-emerald-400" : "text-rose-400")}>{sign6(st.R)}</span>
                 </div>
                 <div className="mrow">
-                  <span className="mkey">미실?�손??SOL)</span>
+                  <span className="mkey">미실?�손??SOL)</span>
                   <span className={cls("mval", (st.U>=0) ? "text-emerald-400" : "text-rose-400")}>{sign6(st.U)}</span>
                 </div>
               </div>
