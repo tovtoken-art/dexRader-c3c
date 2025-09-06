@@ -33,6 +33,18 @@ export default function TabsContainer({
   const lastFetchRef = useRef<number>(0);
   const refreshTimerRef = useRef<number | null>(null);
 
+    useEffect(() => {
+    setWhales(whalesInit || []);
+  }, [whalesInit]);
+
+  useEffect(() => {
+    setTrades(tradesInit || []); // (선택) 서버 새로고침으로 온 최근 체결도 반영하고 싶다면
+  }, [tradesInit]);
+
+  useEffect(() => {
+    setLastPrice(lastPriceInitSOLperC3C || 0);
+  }, [lastPriceInitSOLperC3C]);
+  
   useEffect(() => {
     function mapRow(r: any): TradeRow {
       const priceSolPerC3C = Number(r?.price_sol_per_c3c) || (Number(r?.price_c3c_per_sol) ? 1 / Number(r?.price_c3c_per_sol) : 0);

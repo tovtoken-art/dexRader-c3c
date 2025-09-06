@@ -17,8 +17,9 @@ export const viewport: Viewport = {
 
 const SolBalanceWidget = dynamic(
   () => import("./components/SolBalanceWidget"),
-  { ssr: false }
+  { ssr: false, loading: () => null }
 );
+const LiveRefresh = dynamic(() => import("./LiveRefresh"), { ssr: false, loading: () => null });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* 전역 위젯 */}
         <SolBalanceWidget />
+        <LiveRefresh />
       </body>
     </html>
   );
