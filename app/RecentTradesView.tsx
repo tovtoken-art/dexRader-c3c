@@ -49,7 +49,7 @@ function renderSolCellDesktop(side: "BUY" | "SELL", raw: number) {
 /** 모바일 카드용: pill 스타일 (11칸 규칙) */
 function solHeatStyle(side: "BUY" | "SELL", solRaw: number): React.CSSProperties | undefined {
   const val = Math.abs(Number(solRaw) || 0);
-  if (val < 1) return; // 1 SOL 미만은 색상 없음
+  if (val < 1) return;
 
   const isBuy = side === "BUY";
   const hue = isBuy ? 152 : 356;
@@ -167,8 +167,10 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
   const audioUnlocked = useRef(false);
   // 오디오 캐시
   const audioCache = useRef<Record<string, HTMLAudioElement>>({});
+  // 🔔 알림 권한 요청 중복 방지
+  const notifPrompted = useRef(false);
 
-  // 🔔 사운드 on/off (기본 ON, localStorage 보존)
+  // 🔊 사운드 on/off (기본 ON, localStorage 보존)
   const [soundOn, setSoundOn] = useState(true);
   const soundOnRef = useRef(soundOn);
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
@@ -215,7 +217,17 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
     }
     const tid = setTimeout(() => { readyAfterMount.current = true; }, 300);
 
-    const unlock = () => { audioUnlocked.current = true; };
+    const unlock = () => {
+      audioUnlocked.current = true;
+
+      // 권한이 아직 default면 상호작용 시 한 번 더 요청
+      if ("Notification" in window && Notification.permission === "default" && !notifPrompted.current) {
+        notifPrompted.current = true;
+        askNotificationPermission().finally(() => {
+          try { localStorage.setItem("trades_notif_prompted_v1", "1"); } catch {}
+        });
+      }
+    };
     window.addEventListener("pointerdown", unlock, { once: true });
     window.addEventListener("keydown", unlock, { once: true });
     window.addEventListener("touchstart", unlock, { once: true });
@@ -227,6 +239,21 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
       window.removeEventListener("touchstart", unlock);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 처음 접속하면 한 번 권한을 물어봄(가능한 브라우저에서만)
+  useEffect(() => {
+    if (!("Notification" in window) || !("requestPermission" in Notification)) return;
+    try {
+      if (localStorage.getItem("trades_notif_prompted_v1") === "1") return;
+    } catch {}
+
+    if (Notification.permission === "default") {
+      notifPrompted.current = true;
+      askNotificationPermission().finally(() => {
+        try { localStorage.setItem("trades_notif_prompted_v1", "1"); } catch {}
+      });
+    }
   }, []);
 
   // 새 거래 감지 → 사운드 + (백그라운드면) 시스템 알림
@@ -274,17 +301,20 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
             const icon = getNotifIcon(top.side as "BUY" | "SELL");
             const ts = Date.parse((top as any)?.ts || "") || Date.now();
 
-            const n = new Notification(title, {
+            // TS의 NotificationOptions에는 없는 필드가 있어 any로 우회
+            const opts: any = {
               body,
-              icon,                  // 컬러 원형 아이콘
-              badge: icon,           // (가능한 브라우저에서) 작은 배지
+              icon,
+              badge: icon,
               lang: "ko-KR",
-              timestamp: ts,         // 일부 브라우저 표시
-              tag: "trades",         // 같은 태그면 갱신
-              renotify: true,        // 갱신 시 진동/하이라이트
-              silent: true,          // 효과음은 별도 재생
-              requireInteraction: false, // 필요 시 true로 고정 가능
-            });
+              tag: "trades",
+              silent: true,
+              requireInteraction: false,
+            };
+            opts.timestamp = ts;
+            opts.renotify = true;
+
+            const n = new Notification(title, opts as any);
 
             n.onclick = () => {
               try {
@@ -297,12 +327,12 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
         })();
       }
 
-      // 본 것으로 처리(이번에 들어온 모든 신규 tx)
+      // 본 것으로 처리
       for (const r of newlyArrived) {
         if (r.tx_signature) seenTx.current.add(r.tx_signature);
       }
     }
-  }, [rows]);
+  }, [rows, notifyOnHidden]);
 
   // 🔕 OFF로 바꾸면 재생 중인 소리도 즉시 멈춤
   const toggleSound = () => {
