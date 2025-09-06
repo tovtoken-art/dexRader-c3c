@@ -189,10 +189,12 @@ export default function SolBalanceWidget() {
             return [residual, ...(prevD || [])].slice(0, 2);
           });
 
-          // 🔊 외부 입금/출금 사운드
+          // 🔊 외부 입금/출금 사운드(절대값 5 SOL 이상만)
           if (willPush) {
-            if (residual > 0) playSound(DEPOSIT_SOUND_URL);
-            else playSound(WITHDRAW_SOUND_URL);
+            const bigMove = Math.abs(residual) >= 5;
+            if (bigMove) {
+              playSound(residual > 0 ? DEPOSIT_SOUND_URL : WITHDRAW_SOUND_URL);
+            }
           }
         }
 
