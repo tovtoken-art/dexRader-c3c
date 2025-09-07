@@ -76,7 +76,10 @@ export default function ReadmeButton({ src = "/README.md", label = "Guide" }: Pr
         <aside
           role="dialog"
           aria-modal="true"
-          className={`absolute right-0 top-0 h-full w-full max-w-3xl transform border-l border-zinc-800 bg-zinc-950 text-zinc-200 shadow-2xl shadow-black/50 transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
+          className={`absolute left-0 top-0 h-full w-full max-w-3xl transform
+                      border-r border-zinc-800 bg-zinc-950 text-zinc-200
+                      shadow-2xl shadow-black/50 transition-transform duration-300
+                      ${open ? "translate-x-0" : "-translate-x-full"}`}
         >
           <div className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950/90 px-5 py-3 backdrop-blur-sm">
             <div className="flex items-center justify-between">
