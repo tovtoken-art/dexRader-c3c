@@ -13,7 +13,7 @@ export default async function Page() {
 
   // 1) 고래 랭킹
   const { data: whales } = await supabase
-    .from("whale_ranking")
+    .from("whale_ranking_c3c")
     .select("*")
     .limit(2000);
 

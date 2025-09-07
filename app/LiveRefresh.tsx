@@ -50,13 +50,13 @@ export default function LiveRefresh() {
       )
       .subscribe();
 
-    // 2) whale_stats도 변하면 새로고침 (배치 업데이트 대비)
+    // 2) whale_stats_c3c도 변하면 새로고침 (배치 업데이트 대비)
     const ch2 = sb
-      .channel("live_refresh_whale_stats")
+      .channel("live_refresh_whale_stats_c3c")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "whale_stats" },
-        () => doRefresh("realtime:whale_stats")
+        { event: "*", schema: "public", table: "whale_stats_c3c" },
+        () => doRefresh("realtime:whale_stats_c3c")
       )
       .subscribe();
 
