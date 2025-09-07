@@ -2,6 +2,6 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: { extend: {} },
-  plugins: []
+  plugins: [require('@tailwindcss/typography')]
 };
 export default config;

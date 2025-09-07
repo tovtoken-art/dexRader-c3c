@@ -3,6 +3,8 @@ export const revalidate = 0;
 import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "../lib/supabase";
 import TabsContainer, { TradeRow } from "./TabsContainer";
+import ReadmeButton from "./components/ReadmeButton";
+
 
 const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 10 });
 
@@ -43,6 +45,7 @@ export default async function Page() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <span className="badge badge-emerald">최신가 {nf6.format(Number(lastPriceSOLperC3C || 0))} SOL/C3C</span>
+        <ReadmeButton />
       </div>
 
       <TabsContainer
