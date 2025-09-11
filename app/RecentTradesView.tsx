@@ -93,8 +93,8 @@ function soundFor(side: "BUY" | "SELL", solAmount: number) {
   if (s >= 7)  return `/sounds/${side}_7sol_Transaction.mp3`;
   if (s >= 5)  return `/sounds/${side}_5sol_Transaction.mp3`;
   if (s >= 3)  return `/sounds/${side}_3sol_Transaction.mp3`;
-  if (s >= 1)  return `/sounds/1sol_Transaction.mp3`;
-  return `/sounds/New_Transaction.mp3`;
+  if (s >= 1)  return `/sounds/${side}_1sol_Transaction.mp3`;
+  if (s < 1) return `/sounds/${side}_New_Transaction.mp3`;
 }
 
 /* ------------------------------ */
