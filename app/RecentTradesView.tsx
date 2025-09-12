@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { TradeRow } from "./TabsContainer";
 
 const nf3 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
-const nf6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 8 });
+const nf8 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 8 });
 
 function short(x: string) {
   return x?.length > 12 ? `${x.slice(0, 6)}…${x.slice(-6)}` : x || "";
@@ -19,7 +19,7 @@ function fmtTime(iso: string, loading?: boolean) {
 function renderSolCellDesktop(side: "BUY" | "SELL", raw: number) {
   const val = Math.abs(Number(raw) || 0);
   if (!Number.isFinite(val)) return "…";
-  if (val < 1) return <span className="relative z-10">{nf6.format(val)}</span>;
+  if (val < 1) return <span className="relative z-10">{nf8.format(val)}</span>;
 
   // 11칸 게이지: 1SOL→2칸, 2SOL→3칸 … 10SOL→11칸(가득)
   const total = 11;
@@ -41,7 +41,7 @@ function renderSolCellDesktop(side: "BUY" | "SELL", raw: number) {
         className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-6 rounded-md"
         style={{ width: `calc(${pct}% - .75rem)`, background: bg, boxShadow: ring }}
       />
-      <span className="relative z-10">{nf6.format(val)}</span>
+      <span className="relative z-10">{nf8.format(val)}</span>
     </>
   );
 }
@@ -295,8 +295,8 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
           try {
             const isBuy = top.side === "BUY";
             const emoji = isBuy ? "🟢" : "🔴";
-            const title = `${emoji} ${isBuy ? "매수" : "매도"} ${nf6.format(Math.abs(Number(top.sol_amount) || 0))} SOL`;
-            const body  = `${short(top.wallet)} · ${nf3.format(Number(top.c3c_amount) || 0)} C3C · ${nf6.format(Number(top.price_sol_per_c3c) || 0)} SOL/C3C`;
+            const title = `${emoji} ${isBuy ? "매수" : "매도"} ${nf8.format(Math.abs(Number(top.sol_amount) || 0))} SOL`;
+            const body  = `${short(top.wallet)} · ${nf3.format(Number(top.c3c_amount) || 0)} C3C · ${nf8.format(Number(top.price_sol_per_c3c) || 0)} SOL/C3C`;
 
             const icon = getNotifIcon(top.side as "BUY" | "SELL");
             const ts = Date.parse((top as any)?.ts || "") || Date.now();
@@ -452,7 +452,7 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
                     {t._loading ? "…" : renderSolCellDesktop(t.side, Number(t.sol_amount || 0))}
                   </td>
 
-                  <td className="td">{t._loading ? "…" : nf6.format(Number(t.price_sol_per_c3c || 0))}</td>
+                  <td className="td">{t._loading ? "…" : nf8.format(Number(t.price_sol_per_c3c || 0))}</td>
                   <td className="td">
                     {t.tx_signature ? (
                       <a className="btn-ghost" href={`https://solscan.io/tx/${t.tx_signature}`} target="_blank" rel="noreferrer">열기</a>
@@ -480,12 +480,12 @@ export default function RecentTradesView({ rows }: { rows: TradeRow[] }) {
                 <div className="mval">
                   {t._loading ? "…" : (
                     <span style={solHeatStyle(t.side, Number(t.sol_amount || 0))} title={`${t.sol_amount} SOL`}>
-                      {nf6.format(Number(t.sol_amount || 0))}
+                      {nf8.format(Number(t.sol_amount || 0))}
                     </span>
                   )}
                 </div>
               </div>
-              <div className="mrow"><div className="mkey">가격</div><div className="mval">{t._loading ? "…" : `${nf6.format(Number(t.price_sol_per_c3c || 0))} SOL/C3C`}</div></div>
+              <div className="mrow"><div className="mkey">가격</div><div className="mval">{t._loading ? "…" : `${nf8.format(Number(t.price_sol_per_c3c || 0))} SOL/C3C`}</div></div>
               <div className="mt-2">
                 {t.tx_signature ? (
                   <a className="btn touch w-full justify-center" href={`https://solscan.io/tx/${t.tx_signature}`} target="_blank" rel="noreferrer">Solscan 열기</a>
